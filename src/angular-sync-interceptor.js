@@ -40,8 +40,8 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSyncHistory', '$q', funct
 
     response: function (response) {
       var config = response.config;
-        history.remove(config);
-        return response;
+      history.remove(config);
+      return response;
     },
 
     responseError: function (rejection) {
@@ -69,8 +69,8 @@ angularSync.config(['$httpProvider', '$provide', function ($httpProvider, $provi
         if (error) {
           newErrorCallback = function (data, status, headers, config) {
             var originalConfig = config || data;
-              if (!originalConfig.angularSync) {
-                return error.apply(this, arguments);
+            if (!originalConfig.angularSync) {
+              return error.apply(this, arguments);
             }
 
             return $q.reject(data);
@@ -82,7 +82,7 @@ angularSync.config(['$httpProvider', '$provide', function ($httpProvider, $provi
         return originalThen.apply(promise, args);
       };
 
-        return promise;
+      return promise;
     };
 
     var customHttp = function (config) {

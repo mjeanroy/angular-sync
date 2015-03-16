@@ -45,7 +45,7 @@ describe('AngularSyncTimeout', function() {
   });
 
   it('should check that two timestamp are never outdated if timeout is zero', function() {
-  	AngularSyncTimeout.timeout = 0;
+    AngularSyncTimeout.timeout = 0;
     var t1 = new Date().getTime();
     var t2 = t1 + 10;
 
@@ -54,7 +54,7 @@ describe('AngularSyncTimeout', function() {
   });
  
   it('should check that two timestamp are outdated if timeout is set to positive value', function() {
-  	AngularSyncTimeout.timeout = 10;
+    AngularSyncTimeout.timeout = 10;
     var t1 = new Date().getTime();
     var t2 = t1 + 10;
 
