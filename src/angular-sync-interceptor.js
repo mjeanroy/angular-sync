@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+/* global angular */
 /* global angularSync */
 
 angularSync.factory('AngularSyncInterceptor', ['AngularSyncHistory', '$q', function (history, $q) {
@@ -89,6 +90,19 @@ angularSync.config(['$httpProvider', '$provide', function ($httpProvider, $provi
       var promise = $delegate(config);
       return wrapErrorCallback(promise);
     };
+
+    var createShortcutMethodWrapper = function(original, fn) {
+      return function() {
+        var promise = original[fn].apply(original, arguments);
+        return wrapErrorCallback(promise);
+      };
+    };
+
+    for (var i in $delegate) {
+      if (angular.isFunction($delegate[i])) {
+        customHttp[i] = createShortcutMethodWrapper($delegate, i);
+      }
+    }
 
     // Return the custom http service
     return customHttp;

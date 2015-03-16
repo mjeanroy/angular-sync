@@ -28,16 +28,22 @@ describe('AngularSyncInterceptor', function() {
   var AngularSyncHistory;
   var $httpProvider;
   var $q;
+  var $http;
+  var $httpBackend;
+
   var promise;
 
   beforeEach(angular.mock.module('angularSync', function(_$httpProvider_) {
     $httpProvider = _$httpProvider_;
   }));
 
-  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$q_) {
+  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$q_, _$http_, _$httpBackend_) {
     AngularSyncInterceptor = _AngularSyncInterceptor_;
     AngularSyncHistory = _AngularSyncHistory_;
+
     $q = _$q_;
+    $http = _$http_;
+    $httpBackend = _$httpBackend_;
 
     promise = jasmine.createSpy('promise');
     spyOn(AngularSyncHistory, 'add').and.callThrough();
@@ -207,5 +213,105 @@ describe('AngularSyncInterceptor', function() {
     expect(r2).toBe(promise);
     expect(AngularSyncHistory.contains(config)).toBe(true);
     expect(AngularSyncHistory.remove).not.toHaveBeenCalled();
+  });
+
+  describe('using $http', function() {
+    var onSuccess;
+    var onError;
+    var url;
+
+    beforeEach(function() {
+      onSuccess = jasmine.createSpy('success');
+      onError = jasmine.createSpy('error');
+      url = '/foo';
+
+      $q.reject.and.callThrough();
+    });
+  
+    it('should define shortcut methods', function() {
+      expect(angular.isFunction($http.get)).toBe(true);
+      expect(angular.isFunction($http.post)).toBe(true);
+      expect(angular.isFunction($http.put)).toBe(true);
+      expect(angular.isFunction($http['delete'])).toBe(true);
+      expect(angular.isFunction($http.patch)).toBe(true);
+    });
+
+    it('should not trigger request response twice', function() {
+      var config = {
+        url: url,
+        method: 'POST'
+      };
+
+      $httpBackend.expectPOST(url).respond(201);
+
+      $http(config).success(onSuccess).error(onError);
+      $http(config).success(onSuccess).error(onError);
+
+      $httpBackend.flush();
+
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onSuccess.calls.count()).toBe(1);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger request response error twice', function() {
+      var config = {
+        url: url,
+        method: 'POST'
+      };
+
+      $httpBackend.expectPOST(url).respond(400);
+
+      $http(config).success(onSuccess).error(onError);
+      $http(config).success(onSuccess).error(onError);
+
+      $httpBackend.flush();
+
+      expect(onSuccess).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalled();
+      expect(onError.calls.count()).toBe(1);
+    });
+
+    it('should trigger POST request using shortcut method', function() {
+      var config = {
+        url: url,
+        method: 'POST'
+      };
+
+      $httpBackend.expectPOST(url).respond(400);
+
+      $http.post(config.url).success(onSuccess).error(onError);
+      $http.post(config.url).success(onSuccess).error(onError);
+
+      $httpBackend.flush();
+
+      expect(onSuccess).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalled();
+      expect(onError.calls.count()).toBe(1);
+    });
+
+    it('should trigger two POST request if it is different requests', function() {
+      var config1 = {
+        url: url,
+        method: 'POST'
+      };
+
+      var config2 = {
+        url: url + '/bar',
+        method: 'POST'
+      };
+
+      $httpBackend.expectPOST(config1.url).respond(200);
+      $httpBackend.expectPOST(config2.url).respond(200);
+
+      $http.post(config1.url).success(onSuccess).error(onError);
+      $http.post(config2.url).success(onSuccess).error(onError);
+
+      $httpBackend.flush();
+
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onSuccess.calls.count()).toBe(2);
+      expect(onError).not.toHaveBeenCalled();
+    });
   });
 });
