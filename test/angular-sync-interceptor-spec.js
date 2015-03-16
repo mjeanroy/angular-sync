@@ -29,20 +29,23 @@ describe('AngularSyncInterceptor', function() {
   var $httpProvider;
   var $q;
   var $http;
+  var $resource;
   var $httpBackend;
 
   var promise;
 
+  beforeEach(angular.mock.module('ngResource'));
   beforeEach(angular.mock.module('angularSync', function(_$httpProvider_) {
     $httpProvider = _$httpProvider_;
   }));
 
-  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$q_, _$http_, _$httpBackend_) {
+  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$q_, _$http_, _$resource_, _$httpBackend_) {
     AngularSyncInterceptor = _AngularSyncInterceptor_;
     AngularSyncHistory = _AngularSyncHistory_;
 
     $q = _$q_;
     $http = _$http_;
+    $resource = _$resource_;
     $httpBackend = _$httpBackend_;
 
     promise = jasmine.createSpy('promise');
@@ -246,6 +249,24 @@ describe('AngularSyncInterceptor', function() {
 
       $http(config).success(onSuccess).error(onError);
       $http(config).success(onSuccess).error(onError);
+
+      $httpBackend.flush();
+
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onSuccess.calls.count()).toBe(1);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger request response twice with $resource', function() {
+      var config = {
+        url: url,
+        method: 'POST'
+      };
+
+      $httpBackend.expectPOST(url).respond(201);
+
+      $resource(config.url).save(onSuccess, onError);
+      $resource(config.url).save(onSuccess, onError);
 
       $httpBackend.flush();
 
