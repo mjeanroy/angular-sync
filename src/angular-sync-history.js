@@ -27,36 +27,90 @@
 angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeout) {
   var $urls = {};
 
+  var now = function() {
+    return new Date().getTime();
+  };
+
   var buildKey = function (url, method) {
     return method + '_' + url;
   };
 
+  var findIndex = function(array, callback, ctx) {
+    for (var i = 0, size = array.length; i < size; ++i) {
+      if (callback.call(ctx, array[i], i, array)) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  var isSameConfigIterator = function(config) {
+    return function(current) {
+      return config === current.config;
+    };
+  };
+
+  var reject = function(array, callback, ctx) {
+    var newArray = [];
+    for (var i = 0, size = array.length; i < size; ++i) {
+      if (!callback.call(ctx, array[i], i, array)) {
+        newArray.push(array[i]);
+      }
+    }
+    return newArray;
+  };
+
   return {
+    // Get copy of pending requests
+    pendings: function(config) {
+      var key = buildKey(config.url, config.method);
+      return ($urls[key] || []).slice();
+    },
+
     // Add new entry
     add: function (config) {
       var key = buildKey(config.url, config.method);
-      $urls[key] = new Date().getTime();
+      var pendings = $urls[key] = $urls[key] || [];
+
+      pendings.push({
+        timestamp: now(),
+        config: config
+      });
+
       return this;
     },
 
     // Remove entry
     remove: function (config) {
       var key = buildKey(config.url, config.method);
-      $urls[key] = null;
+      var pendings = $urls[key] || [];
+
+      var idx = findIndex(pendings, isSameConfigIterator(config));
+      if (idx !== -1) {
+        pendings.splice(idx, 1);
+      }
+
       return this;
     },
 
-    // Check if entry is defined
+    // Clear pending requests
+    clear: function(config) {
+      var key = buildKey(config.url, config.method);
+      $urls[key] = [];
+      return this;
+    },
+
+    // Check if entry is currently in progress
     contains: function (config) {
       var key = buildKey(config.url, config.method);
-      var timestamp = $urls[key];
+      var tt = now();
 
-      var isInProgress = timestamp && !timeout.isOutdated(timestamp, new Date());
-      if (!isInProgress) {
-        $urls[key] = null;
-      }
+      // Outdated request should not be here anyway, so remove it now...
+      var pendings = $urls[key] = reject($urls[key] || [], function(rq) {
+        return timeout.isOutdated(rq.timestamp, tt);
+      });
 
-      return !!isInProgress;
+      return pendings.length > 0;
     }
   };
 }]);

@@ -45,6 +45,8 @@ var vendors = [
 
 var files = [
   'src/angular-sync-module.js',
+  'src/angular-sync-modes.js',
+  'src/angular-sync-provider.js',
   'src/angular-sync-timeout.js',
   'src/angular-sync-history.js',
   'src/angular-sync-interceptor.js'
@@ -99,7 +101,7 @@ gulp.task('test', function(done) {
   karma.start(options, onDone);
 });
 
-gulp.task('build', ['lint', 'minify']);
+gulp.task('build', ['lint', 'minify', 'test']);
 gulp.task('default', ['build']);
 
 gulp.task('server', ['minify'], function () {

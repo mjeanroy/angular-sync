@@ -22,19 +22,46 @@
  * SOFTWARE.
  */
 
+/* global angular */
 /* global angularSync */
 
-angularSync.factory('AngularSyncTimeout', ['AngularSync', function (AngularSync) {
-  return {
-    isOutdated: function (d1, d2) {
-      var timeout = AngularSync.timeout();
-      if (timeout <= 0) {
-        return false;
-      }
+angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
 
-      var t1 = new Date(d1).getTime();
-      var t2 = new Date(d2).getTime();
-      return Math.abs(t2 - t1) >= timeout;
+  var options = {
+    timeout: -1,
+    modes: {
+      GET: SyncMode.ABORT,
+      POST: SyncMode.PREVENT,
+      PUT: SyncMode.PREVENT,
+      PATCH: SyncMode.PREVENT,
+      DELETE: SyncMode.PREVENT
     }
   };
+
+  this.timeout = function(timeout) {
+    options.timeout = timeout;
+  };
+
+  this.mode = function(verb, mode) {
+    var m = SyncMode[mode.toUpperCase()];
+
+    if (!angular.isDefined(m)) {
+      throw new Error('Mode "' + mode + '" is not valid');
+    }
+
+    options.modes[verb.toUpperCase()] = m;
+  };
+
+  this.$get = function() {
+    return {
+      timeout: function() {
+        return options.timeout;
+      },
+
+      mode: function(verb) {
+        return options.modes[verb.toUpperCase()];
+      }
+    };
+  };
+
 }]);

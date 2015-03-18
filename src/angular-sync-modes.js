@@ -24,17 +24,10 @@
 
 /* global angularSync */
 
-angularSync.factory('AngularSyncTimeout', ['AngularSync', function (AngularSync) {
-  return {
-    isOutdated: function (d1, d2) {
-      var timeout = AngularSync.timeout();
-      if (timeout <= 0) {
-        return false;
-      }
+// Constants values that define sync mode
 
-      var t1 = new Date(d1).getTime();
-      var t2 = new Date(d2).getTime();
-      return Math.abs(t2 - t1) >= timeout;
-    }
-  };
-}]);
+angularSync.constant('AngularSyncMode', {
+  ABORT: 'abort',        // Pending request will be aborted.
+  PREVENT: 'prevent',    // New request will not be sent because of pending request.
+  FORCE: 'force'         // New request will be triggered even if pending request exist.
+});

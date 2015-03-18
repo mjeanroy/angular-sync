@@ -25,18 +25,47 @@
 /* global angular */
 /* global angularSync */
 
-angularSync.factory('AngularSyncInterceptor', ['AngularSyncHistory', '$q', function (history, $q) {
+angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', '$q', function (AngularSync, SyncMode, history, $q) {
+  var commands = {};
+
+  // Prevent requests to be triggered in parallel
+  // Useful to not trigger the same POST request...
+  commands[SyncMode.PREVENT] = function(config) {
+    if (history.contains(config)) {
+      config.angularSync = true;
+      return $q.reject(config);
+    }
+
+    history.add(config);
+    return config;
+  };
+
+  // Request will be triggered whatever happens
+  commands[SyncMode.FORCE] = function(config) {
+    history.add(config);
+    return config;
+  };
+
+  // Pending requests will be aborted and incoming request
+  // will be triggered
+  commands[SyncMode.ABORT] = function(config) {
+    angular.forEach(history.pendings(config), function(rq) {
+      rq.timeout.reject('Request aborted because of new incoming request');
+    });
+
+    history.clear().add(config);
+    return config;
+  };
+
   return {
     request: function (config) {
       var method = config.method;
+      var mode = config.syncMode || AngularSync.mode(method);
 
-      if (method !== 'GET' && history.contains(config)) {
-        config.angularSync = true;
-        return $q.reject(config);
-      } else {
-        history.add(config);
-        return config;
-      }
+      // Add timeout to abort request if needed
+      config.timeout = config.timeout || $q.defer();
+
+      return commands[mode](config);
     },
 
     response: function (response) {

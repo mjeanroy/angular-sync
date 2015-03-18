@@ -51,6 +51,7 @@ describe('AngularSyncInterceptor', function() {
     promise = jasmine.createSpy('promise');
     spyOn(AngularSyncHistory, 'add').and.callThrough();
     spyOn(AngularSyncHistory, 'remove').and.callThrough();
+    spyOn($q, 'defer').and.callThrough();
     spyOn($q, 'reject').and.returnValue(promise);
   }));
 
@@ -63,7 +64,7 @@ describe('AngularSyncInterceptor', function() {
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);
@@ -74,12 +75,47 @@ describe('AngularSyncInterceptor', function() {
     expect(AngularSyncHistory.contains(config)).toBe(true);
   });
 
+  it('should add timeout promise when request is triggered', function() {
+    var url = '/foo';
+    var method = 'POST';
+    var config = {
+      url: url,
+      method: method
+    };
+
+    expect(AngularSyncHistory.contains(config)).toBe(false);
+
+    AngularSyncInterceptor.request(config);
+
+    expect(config.timeout).toBeDefined();
+    expect($q.defer).toHaveBeenCalled();
+  });
+
+  it('should not override timeout promise when request is triggered', function() {
+    var url = '/foo';
+    var method = 'POST';
+    var timeout = jasmine.createSpy('timeout');
+    var config = {
+      url: url,
+      method: method,
+      timeout: timeout
+    };
+
+    expect(AngularSyncHistory.contains(config)).toBe(false);
+
+    AngularSyncInterceptor.request(config);
+
+    expect(config.timeout).toBeDefined();
+    expect(config.timeout).toBe(timeout);
+    expect($q.defer).not.toHaveBeenCalled();
+  });
+
   it('should prevent entry to be added and reject request if entry is already in progress', function() {
     var url = '/foo';
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);
@@ -108,7 +144,7 @@ describe('AngularSyncInterceptor', function() {
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);
@@ -137,7 +173,7 @@ describe('AngularSyncInterceptor', function() {
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);
@@ -166,7 +202,7 @@ describe('AngularSyncInterceptor', function() {
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);
@@ -196,7 +232,7 @@ describe('AngularSyncInterceptor', function() {
     var method = 'POST';
     var config = {
       url: url,
-      config: config
+      method: method
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);

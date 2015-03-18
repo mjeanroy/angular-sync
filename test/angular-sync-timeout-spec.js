@@ -24,17 +24,16 @@
 
 describe('AngularSyncTimeout', function() {
 
+  var AngularSyncProvider;
   var AngularSyncTimeout;
 
-  beforeEach(angular.mock.module('angularSync'));
+  beforeEach(angular.mock.module('angularSync', function(_AngularSyncProvider_) {
+    AngularSyncProvider =  _AngularSyncProvider_;
+  }));
 
   beforeEach(inject(function(_AngularSyncTimeout_) {
     AngularSyncTimeout = _AngularSyncTimeout_;
   }));
-
-  it('should define a timeout less than zero by default', function() {
-    expect(AngularSyncTimeout.timeout).toBe(-1);
-  });
 
   it('should check that two timestamp are never outdated if timeout is less than zero', function() {
     var t1 = new Date().getTime();
@@ -45,7 +44,7 @@ describe('AngularSyncTimeout', function() {
   });
 
   it('should check that two timestamp are never outdated if timeout is zero', function() {
-    AngularSyncTimeout.timeout = 0;
+    AngularSyncProvider.timeout(0);
     var t1 = new Date().getTime();
     var t2 = t1 + 10;
 
@@ -54,7 +53,7 @@ describe('AngularSyncTimeout', function() {
   });
  
   it('should check that two timestamp are outdated if timeout is set to positive value', function() {
-    AngularSyncTimeout.timeout = 10;
+    AngularSyncProvider.timeout(10);
     var t1 = new Date().getTime();
     var t2 = t1 + 10;
 

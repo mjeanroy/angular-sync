@@ -50,6 +50,53 @@ describe('AngularSyncTimeout', function() {
     expect(AngularSyncHistory.contains(config)).toBe(true);
   });
 
+  it('should add two request with same url and method', function() {
+    var url = '/foo';
+    var method = 'POST';
+
+    var config1 = {
+      url: url,
+      method: method
+    };
+
+    var config2 = {
+      url: url,
+      method: method
+    };
+
+    expect(AngularSyncHistory.contains(config1)).toBe(false);
+    expect(AngularSyncHistory.contains(config2)).toBe(false);
+
+    AngularSyncHistory.add(config1);
+    AngularSyncHistory.add(config2);
+
+    expect(AngularSyncHistory.contains(config1)).toBe(true);
+    expect(AngularSyncHistory.contains(config2)).toBe(true);
+  });
+
+  it('should get pending requests', function() {
+    var url = '/foo';
+    var method = 'POST';
+
+    var config1 = {
+      url: url,
+      method: method
+    };
+
+    var config2 = {
+      url: url,
+      method: method
+    };
+
+    AngularSyncHistory.add(config1);
+    AngularSyncHistory.add(config2);
+
+    expect(AngularSyncHistory.pendings(config1)).toEqual([
+      { config: config1, timestamp: jasmine.any(Number) },
+      { config: config2, timestamp: jasmine.any(Number) }
+    ]);
+  });
+
   it('should remove url with method', function() {
     var url = '/foo';
     var method = 'POST';
@@ -65,6 +112,33 @@ describe('AngularSyncTimeout', function() {
 
     AngularSyncHistory.remove(config);
     expect(AngularSyncHistory.contains(config)).toBe(false);
+  });
+
+  it('should clear all url with method', function() {
+    var url = '/foo';
+    var method = 'POST';
+
+    var config1 = {
+      url: url,
+      method: method
+    };
+
+    var config2 = {
+      url: url,
+      method: method
+    };
+
+    expect(AngularSyncHistory.contains(config1)).toBe(false);
+    expect(AngularSyncHistory.contains(config2)).toBe(false);
+
+    AngularSyncHistory.add(config1);
+    AngularSyncHistory.add(config2);
+    expect(AngularSyncHistory.contains(config1)).toBe(true);
+    expect(AngularSyncHistory.contains(config2)).toBe(true);
+
+    AngularSyncHistory.clear(config1);
+    expect(AngularSyncHistory.contains(config1)).toBe(false);
+    expect(AngularSyncHistory.contains(config2)).toBe(false);
   });
 
   it('should not contain entry if entry is outdated', function() {

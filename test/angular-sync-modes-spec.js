@@ -22,19 +22,25 @@
  * SOFTWARE.
  */
 
-/* global angularSync */
+describe('AngularSyncMode', function() {
 
-angularSync.factory('AngularSyncTimeout', ['AngularSync', function (AngularSync) {
-  return {
-    isOutdated: function (d1, d2) {
-      var timeout = AngularSync.timeout();
-      if (timeout <= 0) {
-        return false;
-      }
+  var SyncMode;
 
-      var t1 = new Date(d1).getTime();
-      var t2 = new Date(d2).getTime();
-      return Math.abs(t2 - t1) >= timeout;
-    }
-  };
-}]);
+  beforeEach(angular.mock.module('angularSync'));
+
+  beforeEach(inject(function(_AngularSyncMode_) {
+    SyncMode = _AngularSyncMode_;
+  }));
+
+  it('should define "abort" mode', function() {
+    expect(SyncMode.ABORT).toBe('abort');
+  });
+
+  it('should define "prevent" mode', function() {
+    expect(SyncMode.PREVENT).toBe('prevent');
+  });
+
+  it('should define "force" mode', function() {
+    expect(SyncMode.FORCE).toBe('force');
+  });
+});
