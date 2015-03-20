@@ -34,10 +34,12 @@ app.use('/', express.static('dist'));
 
 var port = 8080;
 
-app.post('/foo', function(req, res) {
-  setTimeout(function() {
-    res.send(201, null);
-  }, 3000);
+['get', 'post', 'put', 'patch', 'delete'].forEach(function(verb) {
+  app[verb]('/foo', function(req, res) {
+    setTimeout(function() {
+      res.send(201, null);
+    }, 3000);
+  });
 });
 
 app.listen(port, function () {

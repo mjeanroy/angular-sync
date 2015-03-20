@@ -25,24 +25,60 @@
 angular
   .module('SampleApp', ['ngResource', 'angularSync'])
   .controller('SampleController', ['$scope', '$http', '$resource', function($scope, $http, $resource) {
-    $scope.nbSuccess = 0;
-    $scope.nbError = 0;
+    var $r = $resource('/foo', {}, {
+      put: {
+        method: 'PUT'
+      },
+      patch: {
+        method: 'PATCH'
+      }
+    });
 
-    var onSuccess = function() {
-      $scope.nbSuccess++;
+    var verbs = $scope.verbs = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+    var operations = {
+      GET: 'query',
+      POST: 'save',
+      PUT: 'put',
+      PATCH: 'patch',
+      DELETE: 'delete'
     };
 
-    var onError = function() {
-      $scope.nbError++;
+    $scope.counters = {};
+
+    angular.forEach(verbs, function(verb) {
+      $scope.counters[verb] = {
+        nbSuccess: 0,
+        nbError: 0
+      };
+    });
+
+    var onSuccess = function(verb) {
+      $scope.counters[verb].nbSuccess++;
     };
 
-    $scope.triggerHttp = function() {
-      $http.post('/foo')
-        .success(onSuccess)
-        .error(onError);
+    var onError = function(verb) {
+      $scope.counters[verb].nbError++;
     };
 
-    $scope.triggerNgResource = function() {
-      $resource('/foo').save(onSuccess, onError);
+    $scope.triggerHttp = function(verb) {
+      $http[verb.toLowerCase()]('/foo')
+        .success(function() {
+          onSuccess(verb);
+        })
+        .error(function() {
+          onError(verb);
+        });
+    };
+
+    $scope.triggerNgResource = function(verb) {
+      var op = operations[verb];
+      $r[op](
+        function() {
+          onSuccess(verb);
+        },
+        function() {
+          onError(verb);
+        }
+      );
     };
   }]);

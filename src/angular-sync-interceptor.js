@@ -50,10 +50,10 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
   // will be triggered
   commands[SyncMode.ABORT] = function(config) {
     angular.forEach(history.pendings(config), function(rq) {
-      rq.timeout.reject('Request aborted because of new incoming request');
+      $q.resolve(rq.config.timeout);
     });
 
-    history.clear().add(config);
+    history.clear(config).add(config);
     return config;
   };
 
@@ -63,7 +63,8 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
       var mode = config.syncMode || AngularSync.mode(method);
 
       // Add timeout to abort request if needed
-      config.timeout = config.timeout || $q.defer();
+      config.$q = $q.defer();
+      config.timeout = config.$q.promise;
 
       return commands[mode](config);
     },

@@ -21,11 +21,18 @@
       <p>Try to trigger requests and see counter incremented one by one !</p>
     </div>
     <div class="row" ng-controller="SampleController">
-      <div>Nb Success: {{nbSuccess}}</div>
-      <div>Nb Error: {{nbError}}</div>
-      <div>
-        <button class="btn btn-primary" ng-click="triggerHttp()">Trigger with $http</button>
-        <button class="btn btn-primary" ng-click="triggerNgResource()">Trigger with $resource</button>
+      <div ng-repeat="v in verbs">
+        <div class="panel panel-default">
+          <div class="panel-heading">{{v}}</div>
+          <div class="panel-body">
+            <div>Nb Success: {{counters[v].nbSuccess}}</div>
+            <div>Nb Error: {{counters[v].nbError}}</div>
+            <div>
+              <button class="btn btn-primary" ng-click="triggerHttp(v)">Trigger with $http</button>
+              <button class="btn btn-primary" ng-click="triggerNgResource(v)">Trigger with $resource</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
