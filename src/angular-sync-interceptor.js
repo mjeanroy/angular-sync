@@ -31,8 +31,8 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
   // Prevent requests to be triggered in parallel
   // Useful to not trigger the same POST request...
   commands[SyncMode.PREVENT] = function(config) {
-    if (history.contains(config)) {
-      config.angularSync = true;
+    if (history.contains(config.url, config.method)) {
+      config.ngSync.preventError = true;
       return $q.reject(config);
     }
 
@@ -49,37 +49,46 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
   // Pending requests will be aborted and incoming request
   // will be triggered
   commands[SyncMode.ABORT] = function(config) {
-    angular.forEach(history.pendings(config), function(rq) {
-      $q.resolve(rq.config.timeout);
+    angular.forEach(history.pendings(config.url, config.method), function(rq) {
+      rq.config.ngSync.preventError = true;
+      rq.config.ngSync.$q.resolve();
     });
 
-    history.clear(config).add(config);
+    history.clear(config.url, config.method).add(config);
     return config;
   };
 
   return {
     request: function (config) {
       var method = config.method;
-      var mode = config.syncMode || AngularSync.mode(method);
+
+      // Get request mode
+      var ngSync = config.ngSync = config.ngSync || {};
+      var mode = ngSync.mode = ngSync.mode || AngularSync.mode(method);
 
       // Add timeout to abort request if needed
-      config.$q = $q.defer();
-      config.timeout = config.$q.promise;
+      var deferred = ngSync.$q = $q.defer();
+      var promise = ngSync.$promise = deferred.promise;
+
+      // If a timeout promise is already defined, we must resolve new
+      // timeout promise when original timeout is resolved to force abortion
+      if (config.timeout) {
+        ngSync.$timeout = config.timeout;
+        config.timeout.then(deferred.resolve);
+      }
+
+      config.timeout = promise;
 
       return commands[mode](config);
     },
 
     response: function (response) {
-      var config = response.config;
-      history.remove(config);
+      history.remove(response.config);
       return response;
     },
 
     responseError: function (rejection) {
-      var config = rejection.config || rejection;
-      if (!config.angularSync) {
-        history.remove(config);
-      }
+      history.remove(rejection.config || rejection);
       return $q.reject(rejection);
     }
   };
@@ -99,8 +108,8 @@ angularSync.config(['$httpProvider', '$provide', function ($httpProvider, $provi
         var newErrorCallback = error;
         if (error) {
           newErrorCallback = function (data, status, headers, config) {
-            var originalConfig = config || data;
-            if (!originalConfig.angularSync) {
+            var originalConfig = config || data.config || data;
+            if (!originalConfig.ngSync.preventError) {
               return error.apply(this, arguments);
             }
 

@@ -61,12 +61,6 @@ angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeo
   };
 
   return {
-    // Get copy of pending requests
-    pendings: function(config) {
-      var key = buildKey(config.url, config.method);
-      return ($urls[key] || []).slice();
-    },
-
     // Add new entry
     add: function (config) {
       var key = buildKey(config.url, config.method);
@@ -93,16 +87,22 @@ angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeo
       return this;
     },
 
+    // Get copy of pending requests
+    pendings: function(url, method) {
+      var key = buildKey(url, method);
+      return ($urls[key] || []).slice();
+    },
+
     // Clear pending requests
-    clear: function(config) {
-      var key = buildKey(config.url, config.method);
+    clear: function(url, method) {
+      var key = buildKey(url, method);
       $urls[key] = [];
       return this;
     },
 
     // Check if entry is currently in progress
-    contains: function (config) {
-      var key = buildKey(config.url, config.method);
+    contains: function (url, method) {
+      var key = buildKey(url, method);
       var tt = now();
 
       // Outdated request should not be here anyway, so remove it now...

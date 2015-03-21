@@ -27,6 +27,7 @@ describe('AngularSyncInterceptor', function() {
   var AngularSyncInterceptor;
   var AngularSyncHistory;
   var $httpProvider;
+  var $rootScope;
   var $q;
   var $http;
   var $resource;
@@ -39,10 +40,11 @@ describe('AngularSyncInterceptor', function() {
     $httpProvider = _$httpProvider_;
   }));
 
-  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$q_, _$http_, _$resource_, _$httpBackend_) {
+  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$rootScope_, _$q_, _$http_, _$resource_, _$httpBackend_) {
     AngularSyncInterceptor = _AngularSyncInterceptor_;
     AngularSyncHistory = _AngularSyncHistory_;
 
+    $rootScope = _$rootScope_;
     $q = _$q_;
     $http = _$http_;
     $resource = _$resource_;
@@ -52,217 +54,328 @@ describe('AngularSyncInterceptor', function() {
     spyOn(AngularSyncHistory, 'add').and.callThrough();
     spyOn(AngularSyncHistory, 'remove').and.callThrough();
     spyOn($q, 'defer').and.callThrough();
-    spyOn($q, 'reject').and.returnValue(promise);
+    spyOn($q, 'reject').and.callThrough();
   }));
 
   it('should define interceptor in array of http interceptors', function() {
     expect($httpProvider.interceptors).toContain('AngularSyncInterceptor');
   });
 
-  it('should add entry when request is triggered', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+  describe('interceptor', function() {
+    var config;
+    var response;
+    var rejection;
+    var reject;
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+    beforeEach(function() {
+      config = { url: '/foo', method: 'POST' };
+      response = { config: config };
+      rejection = { config: config };
 
-    AngularSyncInterceptor.request(config);
+      reject = jasmine.createSpy();
+      $q.reject.and.returnValue(reject);
 
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(false);
+    });
+
+    it('should add entry when request is triggered', function() {
+      AngularSyncInterceptor.request(config);
+
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.$q).toBeDefined();
+      expect(config.ngSync.$promise).toBeDefined();
+      expect(config.ngSync.$timeout).not.toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+    });
+
+    it('should keep original timeout', function() {
+      var deferred = $q.defer();
+      var timeout = deferred.promise;
+
+      config.timeout = timeout;
+
+      AngularSyncInterceptor.request(config);
+
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.$q).toBeDefined();
+      expect(config.ngSync.$promise).toBeDefined();
+      expect(config.ngSync.$timeout).toBe(timeout);
+      expect(config.ngSync.preventError).toBeFalsy();
+    });
+
+    it('should cancel request if original timeout is resolved', function() {
+      var deferred = $q.defer();
+      var timeout = deferred.promise;
+
+      config.timeout = timeout;
+
+      AngularSyncInterceptor.request(config);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.timeout).not.toBe(timeout);
+
+      var newTimeout = config.timeout;
+      var callback = jasmine.createSpy('callback');
+      newTimeout.then(callback);
+
+      deferred.resolve();
+      $rootScope.$apply();
+
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it('should remove entry when response is received', function() {
+      var r1 = AngularSyncInterceptor.request(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      var r2 = AngularSyncInterceptor.response(response);
+      expect(r2).toBe(response);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(false);
+      expect(AngularSyncHistory.remove).toHaveBeenCalledWith(config);
+    });
+
+    it('should remove entry when response is received in error', function() {
+      AngularSyncInterceptor.request(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      var r = AngularSyncInterceptor.responseError(rejection);
+
+      expect(r).toBe(reject);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(false);
+      expect(AngularSyncHistory.remove).toHaveBeenCalledWith(config);
+    });
+
+    it('should not remove pendings config if new request is prevented', function() {
+      var c1 = angular.copy(config);
+      var c2 = angular.copy(config);
+
+      AngularSyncInterceptor.request(c1);
+      AngularSyncInterceptor.request(c2);
+
+      expect(AngularSyncHistory.contains(c1.url, c1.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(c1.url, c1.method).length).toBe(1);
+      expect(AngularSyncHistory.pendings(c1.url, c1.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: c1 }
+      ]);
+
+      var r1 = {
+        config: c1
+      };
+
+      var r2 = {
+        config: c2
+      };
+
+      var r = AngularSyncInterceptor.responseError(r2);
+
+      expect(r).toBe(reject);
+      expect(AngularSyncHistory.contains(c1.url, c1.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(c1.url, c1.method).length).toBe(1);
+      expect(AngularSyncHistory.pendings(c1.url, c1.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: c1 }
+      ]);
+    });
+
+    it('should not remove entry when response is received in error and config is the first parameter because of requestError interceptor', function() {
+      var r1 = AngularSyncInterceptor.request(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      var r2 = AngularSyncInterceptor.responseError(angular.copy(config));
+
+      expect(r2).toBe(reject);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(config.url, config.method).length).toBe(1);
+      expect(AngularSyncHistory.pendings(config.url, config.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: config }
+      ]);
+    });
   });
 
-  it('should add timeout promise when request is triggered', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+  describe('interceptor mode', function() {
+    var config;
+    var reject;
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+    beforeEach(function() {
+      config = { url: '/foo', method: 'POST' };
 
-    AngularSyncInterceptor.request(config);
+      reject = jasmine.createSpy();
+      $q.reject.and.returnValue(reject);
 
-    expect(config.timeout).toBeDefined();
-    expect($q.defer).toHaveBeenCalled();
-  });
+      expect(AngularSyncHistory.contains(config)).toBe(false);
+    });
 
-  xit('should not override timeout promise when request is triggered', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var timeout = jasmine.createSpy('timeout');
-    var config = {
-      url: url,
-      method: method,
-      timeout: timeout
-    };
+    it('should prevent two POST requests', function() {
+      config.method = 'POST';
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+      var r1 = AngularSyncInterceptor.request(config);
 
-    AngularSyncInterceptor.request(config);
+      expect(r1).toBe(config);
+      expect(config.angularSync).toBeUndefined();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).not.toHaveBeenCalled();
 
-    expect(config.timeout).toBeDefined();
-    expect(config.timeout).toBe(timeout);
-    expect($q.defer).not.toHaveBeenCalled();
-  });
+      AngularSyncHistory.add.calls.reset();
 
-  it('should prevent entry to be added and reject request if entry is already in progress', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+      var r2 = AngularSyncInterceptor.request(config);
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+      expect(r2).toBe(reject);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeTruthy();
+      expect(AngularSyncHistory.add).not.toHaveBeenCalled();
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).toHaveBeenCalled();
+    });
 
-    var r1 = AngularSyncInterceptor.request(config);
+    it('should abort previous GET requests', function() {
+      config.method = 'GET';
 
-    expect(r1).toBe(config);
-    expect(config.angularSync).toBeUndefined();
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).not.toHaveBeenCalled();
+      var r1 = AngularSyncInterceptor.request(config);
 
-    AngularSyncHistory.add.calls.reset();
+      expect(r1).toBe(config);
+      expect(config.timeout).toBeDefined();
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
 
-    var r2 = AngularSyncInterceptor.request(config);
+      spyOn(config.ngSync.$q, 'resolve');
 
-    expect(r2).toBe(promise);
-    expect(config.angularSync).toBe(true);
-    expect(AngularSyncHistory.add).not.toHaveBeenCalled();
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).toHaveBeenCalled();
-  });
+      var newConfig = angular.copy(config);
+      var r2 = AngularSyncInterceptor.request(newConfig);
 
-  it('should remove entry when response is received', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+      expect(r2).toBe(newConfig);
+      expect(config.ngSync.$q.resolve).toHaveBeenCalled();
+      expect(config.ngSync.preventError).toBe(true);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(config.url, config.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: newConfig }
+      ]);
+    });
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+    it('should prevent two PUT requests', function() {
+      config.method = 'PUT';
 
-    var r1 = AngularSyncInterceptor.request(config);
+      var r1 = AngularSyncInterceptor.request(config);
 
-    expect(r1).toBe(config);
-    expect(config.angularSync).toBeUndefined();
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).not.toHaveBeenCalled();
+      expect(r1).toBe(config);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).not.toHaveBeenCalled();
 
-    var response = {
-      config: config
-    };
+      AngularSyncHistory.add.calls.reset();
 
-    var r2 = AngularSyncInterceptor.response(response);
+      var r2 = AngularSyncInterceptor.request(config);
 
-    expect(r2).toBe(response);
-    expect(AngularSyncHistory.contains(config)).toBe(false);
-    expect(AngularSyncHistory.remove).toHaveBeenCalledWith(config);
-  });
+      expect(r2).toBe(reject);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeTruthy();
+      expect(AngularSyncHistory.add).not.toHaveBeenCalled();
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).toHaveBeenCalled();
+    });
 
-  it('should remove entry when response is received in error', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+    it('should prevent two PATCH requests', function() {
+      config.method = 'PATCH';
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+      var r1 = AngularSyncInterceptor.request(config);
 
-    var r1 = AngularSyncInterceptor.request(config);
+      expect(r1).toBe(config);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).not.toHaveBeenCalled();
 
-    expect(r1).toBe(config);
-    expect(config.angularSync).toBeUndefined();
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).not.toHaveBeenCalled();
+      AngularSyncHistory.add.calls.reset();
 
-    var rejection = {
-      config: config
-    };
+      var r2 = AngularSyncInterceptor.request(config);
 
-    var r2 = AngularSyncInterceptor.responseError(rejection);
+      expect(r2).toBe(reject);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeTruthy();
+      expect(AngularSyncHistory.add).not.toHaveBeenCalled();
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).toHaveBeenCalled();
+    });
 
-    expect(r2).toBe(promise);
-    expect(AngularSyncHistory.contains(config)).toBe(false);
-    expect(AngularSyncHistory.remove).toHaveBeenCalledWith(config);
-  });
+    it('should prevent two DELETE requests', function() {
+      config.method = 'DELETE';
 
-  it('should not remove entry when response is received in error with flag angularSync set to true', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+      var r1 = AngularSyncInterceptor.request(config);
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+      expect(r1).toBe(config);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).not.toHaveBeenCalled();
 
-    var r1 = AngularSyncInterceptor.request(config);
+      AngularSyncHistory.add.calls.reset();
 
-    expect(r1).toBe(config);
-    expect(config.angularSync).toBeUndefined();
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).not.toHaveBeenCalled();
+      var r2 = AngularSyncInterceptor.request(config);
 
-    config.angularSync = true;
-    var rejection = {
-      config: config
-    };
+      expect(r2).toBe(reject);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeTruthy();
+      expect(AngularSyncHistory.add).not.toHaveBeenCalled();
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect($q.reject).toHaveBeenCalled();
+    });
 
-    var r2 = AngularSyncInterceptor.responseError(rejection);
+    it('should force two GET requests if mode is explicitly set', function() {
+      config.method = 'GET';
+      config.ngSync = {
+        mode: 'force'
+      };
 
-    expect(r2).toBe(promise);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect(AngularSyncHistory.remove).not.toHaveBeenCalled();
-  });
+      var r1 = AngularSyncInterceptor.request(config);
 
-  it('should not remove entry when response is received in error and config is the first parameter because of requestError interceptor', function() {
-    var url = '/foo';
-    var method = 'POST';
-    var config = {
-      url: url,
-      method: method
-    };
+      expect(r1).toBe(config);
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(config.url, config.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: config }
+      ]);
 
-    expect(AngularSyncHistory.contains(config)).toBe(false);
+      AngularSyncHistory.add.calls.reset();
 
-    var r1 = AngularSyncInterceptor.request(config);
+      var newConfig = angular.copy(config);
+      var r2 = AngularSyncInterceptor.request(newConfig);
 
-    expect(r1).toBe(config);
-    expect(config.angularSync).toBeUndefined();
-    expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect($q.reject).not.toHaveBeenCalled();
-
-    config.angularSync = true;
-
-    var r2 = AngularSyncInterceptor.responseError(config);
-
-    expect(r2).toBe(promise);
-    expect(AngularSyncHistory.contains(config)).toBe(true);
-    expect(AngularSyncHistory.remove).not.toHaveBeenCalled();
+      expect(r2).toBe(newConfig);
+      expect(newConfig.ngSync).toBeDefined();
+      expect(newConfig.ngSync.preventError).toBeFalsy();
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(newConfig);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+      expect(AngularSyncHistory.pendings(config.url, config.method)).toEqual([
+        { timestamp: jasmine.any(Number), config: config },
+        { timestamp: jasmine.any(Number), config: newConfig }
+      ]);
+    });
   });
 
   describe('using $http', function() {
     var onSuccess;
     var onError;
-    var url;
+    var config;
 
     beforeEach(function() {
       onSuccess = jasmine.createSpy('success');
       onError = jasmine.createSpy('error');
-      url = '/foo';
+      config = { url: 'foo', method: 'POST' };
 
       $q.reject.and.callThrough();
     });
@@ -276,12 +389,7 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should not trigger request response twice', function() {
-      var config = {
-        url: url,
-        method: 'POST'
-      };
-
-      $httpBackend.expectPOST(url).respond(201);
+      $httpBackend.expectPOST(config.url).respond(201);
 
       $http(config).success(onSuccess).error(onError);
       $http(config).success(onSuccess).error(onError);
@@ -294,12 +402,7 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should not trigger request response twice with $resource', function() {
-      var config = {
-        url: url,
-        method: 'POST'
-      };
-
-      $httpBackend.expectPOST(url).respond(201);
+      $httpBackend.expectPOST(config.url).respond(201);
 
       $resource(config.url).save(onSuccess, onError);
       $resource(config.url).save(onSuccess, onError);
@@ -312,15 +415,10 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should not trigger request response error twice', function() {
-      var config = {
-        url: url,
-        method: 'POST'
-      };
+      $httpBackend.expectPOST(config.url).respond(400);
 
-      $httpBackend.expectPOST(url).respond(400);
-
-      $http(config).success(onSuccess).error(onError);
-      $http(config).success(onSuccess).error(onError);
+      $http(angular.copy(config)).success(onSuccess).error(onError);
+      $http(angular.copy(config)).success(onSuccess).error(onError);
 
       $httpBackend.flush();
 
@@ -330,12 +428,7 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should trigger POST request using shortcut method', function() {
-      var config = {
-        url: url,
-        method: 'POST'
-      };
-
-      $httpBackend.expectPOST(url).respond(400);
+      $httpBackend.expectPOST(config.url).respond(400);
 
       $http.post(config.url).success(onSuccess).error(onError);
       $http.post(config.url).success(onSuccess).error(onError);
@@ -348,15 +441,10 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should trigger two POST request if it is different requests', function() {
-      var config1 = {
-        url: url,
-        method: 'POST'
-      };
-
-      var config2 = {
-        url: url + '/bar',
-        method: 'POST'
-      };
+      var config1 = angular.copy(config);
+      var config2 = angular.extend(config, {
+        url: config.url + '/bar',
+      });
 
       $httpBackend.expectPOST(config1.url).respond(200);
       $httpBackend.expectPOST(config2.url).respond(200);
