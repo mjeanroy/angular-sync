@@ -1,7 +1,7 @@
 {
   "name": "angular-sync",
   "author": "mickael.jeanroy@gmail.com",
-  "main": "src/jasmine-rjs.js",
+  "main": "dist/angular-sync.js",
   "version": "0.0.0",
   "repository" : {
     "type" : "git",
