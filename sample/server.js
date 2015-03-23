@@ -37,7 +37,7 @@ var port = 8080;
 ['get', 'post', 'put', 'patch', 'delete'].forEach(function(verb) {
   app[verb]('/foo', function(req, res) {
     setTimeout(function() {
-      res.send(201, null);
+      res.status(201).send(null);
     }, 3000);
   });
 });
