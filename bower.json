@@ -1,0 +1,22 @@
+{
+  "name": "angular-sync",
+  "version": "0.0.0",
+  "authors": [
+    "Mickael Jeanroy <mickael.jeanroy@gmail.com>"
+  ],
+  "description": "Angular services that prevent from parallel same requests",
+  "main": "dist/angular-sync.js",
+  "keywords": [
+    "jasmine",
+    "angular.js"
+  ],
+  "license": "MIT",
+  "private": false,
+  "ignore": [
+    "node_modules",
+    "bower_components",
+    "test",
+    "gulpfile.js"
+  ],
+  "dependencies": {}
+}
