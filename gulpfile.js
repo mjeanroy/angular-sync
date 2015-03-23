@@ -32,6 +32,10 @@ var wrap = require('gulp-wrap');
 var strip = require('gulp-strip-comments');
 var server = require('gulp-express');
 var karma = require('karma').server;
+var git = require('gulp-git');
+var bump = require('gulp-bump');
+var gulpFilter = require('gulp-filter');
+var tag_version = require('gulp-tag-version');
 
 var BUILD_FOLDER = 'dist';
 
@@ -102,6 +106,32 @@ gulp.task('test', function(done) {
 });
 
 gulp.task('build', ['lint', 'minify', 'test']);
+
+['minor', 'major', 'patch'].forEach(function(level) {
+  gulp.task('release:' + level, ['build'], function(done) {
+    var packageJsonFilter = gulpFilter(function(file) {
+      return file.relative === 'package.json';
+    });
+
+    var distFilter = gulpFilter(function(file) {
+      return file.relative === 'dist';
+    });
+
+    return gulp.src(['./package.json', './bower.json', './dist/'])
+      .pipe(bump({type: level}))
+      .pipe(gulp.dest('./'))
+      .pipe(git.add({args: '-f'}))
+      .pipe(git.commit('release: release version'))
+      .pipe(packageJsonFilter)
+      .pipe(tag_version())
+      .pipe(packageJsonFilter.restore())
+      .pipe(distFilter)
+      .pipe(git.rm({args: '-r'}))
+      .pipe(git.commit('release: start new release'));
+  });
+});
+
+gulp.task('release', ['release:minor']);
 gulp.task('default', ['build']);
 
 gulp.task('server', ['minify'], function () {

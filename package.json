@@ -3,9 +3,9 @@
   "author": "mickael.jeanroy@gmail.com",
   "main": "dist/angular-sync.js",
   "version": "0.0.0",
-  "repository" : {
-    "type" : "git",
-    "url" : "git@github.com:mjeanroy/angular-sync.git"
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mjeanroy/angular-sync.git"
   },
   "description": "Angular services that prevent from parallel same requests",
   "devDependencies": {
@@ -28,7 +28,11 @@
     "karma": "0.12.31",
     "karma-chrome-launcher": "0.1.7",
     "karma-jasmine": "0.3.5",
-    "karma-phantomjs-launcher": "0.1.4"
+    "karma-phantomjs-launcher": "0.1.4",
+    "gulp-bump": "0.3.0",
+    "gulp-git": "1.1.0",
+    "gulp-tag-version": "1.2.1",
+    "gulp-filter": "2.0.2"
   },
   "engines": {
     "node": ">=0.10.0"
