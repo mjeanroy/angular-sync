@@ -4,7 +4,7 @@
 
 Simple angular.js module that will prevent your application with parallel and undesirable requests.
 
-Current version is 0.1.1. 
+Current version is 0.1.3. 
 
 ## Installation
 
