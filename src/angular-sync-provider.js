@@ -40,6 +40,7 @@ angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
 
   this.timeout = function(timeout) {
     options.timeout = timeout;
+    return this;
   };
 
   this.mode = function(verb, mode) {
@@ -50,6 +51,8 @@ angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
     }
 
     options.modes[verb.toUpperCase()] = m;
+
+    return this;
   };
 
   this.$get = function() {
