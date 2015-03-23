@@ -94,7 +94,7 @@ angular.module('myApp')
 
 ___Important:___
 
-Note that error callback will not be triggered if request is not being triggered because another request is still pending. This is the same for aborted request (suppose that a request is aborted because a new incoming request is triggered, error callback will not be executed).
+Note that error callback will not be executed if request is not being triggered because another request is still pending. This is the same for aborted request (suppose that a request is aborted because a new incoming request is triggered, error callback will not be executed).
 
 If you think this is a mistake, do not hesitate to submit an issue or a pull request.
 
