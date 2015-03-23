@@ -2,7 +2,7 @@
   "name": "angular-sync",
   "author": "mickael.jeanroy@gmail.com",
   "main": "dist/angular-sync.js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "git@github.com:mjeanroy/angular-sync.git"
