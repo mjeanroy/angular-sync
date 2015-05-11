@@ -34,7 +34,8 @@ angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
       POST: SyncMode.PREVENT,
       PUT: SyncMode.PREVENT,
       PATCH: SyncMode.PREVENT,
-      DELETE: SyncMode.PREVENT
+      DELETE: SyncMode.PREVENT,
+      HEAD: SyncMode.FORCE
     }
   };
 
