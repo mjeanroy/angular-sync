@@ -25,7 +25,7 @@
 /* global angular */
 /* global angularSync */
 
-angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', '$q', function (AngularSync, SyncMode, history, $q) {
+angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', '$q', '$timeout', function (AngularSync, SyncMode, history, $q, $timeout) {
   var commands = {};
 
   // Prevent requests to be triggered in parallel
@@ -72,23 +72,75 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
 
       // If a timeout promise is already defined, we must resolve new
       // timeout promise when original timeout is resolved to force abortion
-      if (config.timeout) {
-        ngSync.$timeout = config.timeout;
-        config.timeout.then(deferred.resolve);
+      var timeout = config.timeout;
+      var timeoutTask,timeoutDeferred, timeoutPromise;
+      if (timeout) {
+        // If timeout is specified as a number, then we should abort request
+        // when timeout is reached
+        if (timeout > 0) {
+          timeoutDeferred = $q.defer();
+          timeoutPromise = timeoutDeferred.promise;
+          timeoutTask = $timeout(timeoutDeferred.resolve, timeout);
+          timeout = timeoutPromise;
+        }
+
+        ngSync.$timeoutTask = timeoutTask;
+        ngSync.$timeout = timeout;
+        timeout.then(deferred.resolve);
       }
 
+      var free = function() {
+        // Set everything to null...
+        deferred = promise = timeout = timeoutTask =
+          timeoutDeferred = timeoutPromise = ngSync = free = null;
+      };
+
+      if (timeoutPromise) {
+        timeoutPromise.then(free, free);
+      }
+
+      // Free memory when promise is resolved
+      promise.then(free, free);
+
+      // Override timeout promise
       config.timeout = promise;
 
       return commands[mode](config);
     },
 
     response: function (response) {
-      history.remove(response.config);
+      var config = response.config;
+      var ngSync = config.ngSync;
+
+      // Remove history
+      history.remove(config);
+
+      // Cancel optional timeout task
+      if (ngSync.$timeoutTask) {
+        $timeout.cancel(ngSync.$timeoutTask);
+      }
+
+      // Cancel created deferred object
+      ngSync.$q.reject();
+
       return response;
     },
 
     responseError: function (rejection) {
-      history.remove(rejection.config || rejection);
+      var config = rejection.config || rejection;
+      var ngSync = config.ngSync;
+
+      // Remove history
+      history.remove(config);
+
+      // Cancel optional timeout task
+      if (ngSync.$timeoutTask) {
+        $timeout.cancel(ngSync.$timeoutTask);
+      }
+
+      // Cancel created deferred object
+      ngSync.$q.reject();
+
       return $q.reject(rejection);
     }
   };

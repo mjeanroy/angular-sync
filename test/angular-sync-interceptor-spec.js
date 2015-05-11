@@ -28,6 +28,7 @@ describe('AngularSyncInterceptor', function() {
   var AngularSyncHistory;
   var $httpProvider;
   var $rootScope;
+  var $timeout;
   var $q;
   var $http;
   var $resource;
@@ -40,11 +41,12 @@ describe('AngularSyncInterceptor', function() {
     $httpProvider = _$httpProvider_;
   }));
 
-  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$rootScope_, _$q_, _$http_, _$resource_, _$httpBackend_) {
+  beforeEach(inject(function(_AngularSyncInterceptor_, _AngularSyncHistory_, _$rootScope_, _$q_, _$timeout_, _$http_, _$resource_, _$httpBackend_) {
     AngularSyncInterceptor = _AngularSyncInterceptor_;
     AngularSyncHistory = _AngularSyncHistory_;
 
     $rootScope = _$rootScope_;
+    $timeout = _$timeout_;
     $q = _$q_;
     $http = _$http_;
     $resource = _$resource_;
@@ -129,6 +131,51 @@ describe('AngularSyncInterceptor', function() {
       deferred.resolve();
       $rootScope.$apply();
 
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it('should cancel request if original timeout is reached', function() {
+      var timeout = 500;
+      config.timeout = timeout;
+
+      AngularSyncInterceptor.request(config);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.timeout).not.toBe(timeout);
+
+      var newTimeout = config.timeout;
+      var callback = jasmine.createSpy('callback');
+      newTimeout.then(callback);
+
+      // When $timeout is flush, then new timeout promise should
+      // have been resolved
+      $timeout.flush();
+
+      $rootScope.$apply();
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it('should cancel timeout task if new timeout is reached', function() {
+      spyOn($timeout, 'cancel').and.callThrough();
+
+      var timeout = 500;
+      config.timeout = timeout;
+
+      AngularSyncInterceptor.request(config);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.timeout).not.toBe(timeout);
+      expect($timeout.cancel).not.toHaveBeenCalled();
+
+      var newTimeout = config.timeout;
+      var callback = jasmine.createSpy('callback');
+      newTimeout.then(callback);
+
+      // When $timeout is flush, then new timeout promise should
+      // have been resolved
+      $timeout.flush();
+
+      $rootScope.$apply();
       expect(callback).toHaveBeenCalled();
     });
 
