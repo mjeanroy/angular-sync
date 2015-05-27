@@ -80,7 +80,7 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
         if (timeout > 0) {
           timeoutDeferred = $q.defer();
           timeoutPromise = timeoutDeferred.promise;
-          timeoutTask = $timeout(timeoutDeferred.resolve, timeout);
+          timeoutTask = $timeout(timeoutDeferred.resolve, timeout, false);
           timeout = timeoutPromise;
         }
 
