@@ -41,7 +41,10 @@ describe('AngularSyncTimeout', function() {
     var method = 'POST';
     var config = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     expect(AngularSyncHistory.contains(config.url, config.method)).toBe(false);
@@ -56,12 +59,18 @@ describe('AngularSyncTimeout', function() {
 
     var config1 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     var config2 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     expect(AngularSyncHistory.contains(config1.url, config1.method)).toBe(false);
@@ -80,12 +89,18 @@ describe('AngularSyncTimeout', function() {
 
     var config1 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     var config2 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     AngularSyncHistory.add(config1);
@@ -102,7 +117,10 @@ describe('AngularSyncTimeout', function() {
     var method = 'POST';
     var config = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     expect(AngularSyncHistory.contains(config.url, config.method)).toBe(false);
@@ -120,12 +138,18 @@ describe('AngularSyncTimeout', function() {
 
     var config1 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     var config2 = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     expect(AngularSyncHistory.contains(config1)).toBe(false);
@@ -146,7 +170,10 @@ describe('AngularSyncTimeout', function() {
     var method = 'POST';
     var config = {
       url: url,
-      method: method
+      method: method,
+      ngSync: {
+        id: url
+      }
     };
 
     expect(AngularSyncHistory.contains(config)).toBe(false);

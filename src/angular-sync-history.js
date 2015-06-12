@@ -25,14 +25,14 @@
 /* global angularSync */
 
 angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeout) {
-  var $urls = {};
+  var $pendings = {};
 
   var now = function() {
     return new Date().getTime();
   };
 
-  var buildKey = function (url, method) {
-    return method + '_' + url;
+  var buildKey = function (id, method) {
+    return method + '_' + id;
   };
 
   var findIndex = function(array, callback, ctx) {
@@ -63,8 +63,10 @@ angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeo
   return {
     // Add new entry
     add: function (config) {
-      var key = buildKey(config.url, config.method);
-      var pendings = $urls[key] = $urls[key] || [];
+      var ngSync = config.ngSync;
+      var id = ngSync.id;
+      var key = buildKey(id, config.method);
+      var pendings = $pendings[key] = $pendings[key] || [];
 
       pendings.push({
         timestamp: now(),
@@ -76,8 +78,10 @@ angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeo
 
     // Remove entry
     remove: function (config) {
-      var key = buildKey(config.url, config.method);
-      var pendings = $urls[key] || [];
+      var ngSync = config.ngSync;
+      var id = ngSync.id;
+      var key = buildKey(id, config.method);
+      var pendings = $pendings[key] || [];
 
       var idx = findIndex(pendings, isSameConfigIterator(config));
       if (idx !== -1) {
@@ -88,25 +92,25 @@ angularSync.factory('AngularSyncHistory', ['AngularSyncTimeout', function (timeo
     },
 
     // Get copy of pending requests
-    pendings: function(url, method) {
-      var key = buildKey(url, method);
-      return ($urls[key] || []).slice();
+    pendings: function(id, method) {
+      var key = buildKey(id, method);
+      return ($pendings[key] || []).slice();
     },
 
     // Clear pending requests
-    clear: function(url, method) {
-      var key = buildKey(url, method);
-      $urls[key] = [];
+    clear: function(id, method) {
+      var key = buildKey(id, method);
+      $pendings[key] = [];
       return this;
     },
 
     // Check if entry is currently in progress
-    contains: function (url, method) {
-      var key = buildKey(url, method);
+    contains: function (id, method) {
+      var key = buildKey(id, method);
       var tt = now();
 
       // Outdated request should not be here anyway, so remove it now...
-      var pendings = $urls[key] = reject($urls[key] || [], function(rq) {
+      var pendings = $pendings[key] = reject($pendings[key] || [], function(rq) {
         return timeout.isOutdated(rq.timestamp, tt);
       });
 

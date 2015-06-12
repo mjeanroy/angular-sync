@@ -70,7 +70,14 @@ describe('AngularSyncInterceptor', function() {
     var reject;
 
     beforeEach(function() {
-      config = { url: '/foo', method: 'POST' };
+      config = {
+        url: '/foo',
+        method: 'POST',
+        ngSync: {
+          id: '/foo'
+        }
+      };
+
       response = { config: config };
       rejection = { config: config };
 
@@ -81,6 +88,22 @@ describe('AngularSyncInterceptor', function() {
     });
 
     it('should add entry when request is triggered', function() {
+      AngularSyncInterceptor.request(config);
+
+      expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);
+      expect(AngularSyncHistory.contains(config.url, config.method)).toBe(true);
+
+      expect(config.timeout).toBeDefined();
+      expect(config.ngSync).toBeDefined();
+      expect(config.ngSync.$q).toBeDefined();
+      expect(config.ngSync.$promise).toBeDefined();
+      expect(config.ngSync.$timeout).not.toBeDefined();
+      expect(config.ngSync.preventError).toBeFalsy();
+    });
+
+    it('should add entry using url instead of id if id does not exist', function() {
+      config.ngSync = undefined;
+
       AngularSyncInterceptor.request(config);
 
       expect(AngularSyncHistory.add).toHaveBeenCalledWith(config);

@@ -31,12 +31,15 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
   // Prevent requests to be triggered in parallel
   // Useful to not trigger the same POST request...
   commands[SyncMode.PREVENT] = function(config) {
-    if (history.contains(config.url, config.method)) {
-      config.ngSync.preventError = true;
+    var ngSync = config.ngSync;
+
+    if (history.contains(ngSync.id, config.method)) {
+      ngSync.preventError = true;
       return $q.reject(config);
     }
 
     history.add(config);
+
     return config;
   };
 
@@ -49,12 +52,17 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
   // Pending requests will be aborted and incoming request
   // will be triggered
   commands[SyncMode.ABORT] = function(config) {
-    angular.forEach(history.pendings(config.url, config.method), function(rq) {
-      rq.config.ngSync.preventError = true;
-      rq.config.ngSync.$q.resolve();
+    var ngSync = config.ngSync;
+
+    angular.forEach(history.pendings(ngSync.id, config.method), function(rq) {
+      var rqNgSync = rq.config.ngSync;
+      rqNgSync.preventError = true;
+      rqNgSync.$q.resolve();
     });
 
-    history.clear(config.url, config.method).add(config);
+    history.clear(ngSync.id, config.method)
+           .add(config);
+
     return config;
   };
 
@@ -64,7 +72,9 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
 
       // Get request mode
       var ngSync = config.ngSync = config.ngSync || {};
-      var mode = ngSync.mode = ngSync.mode || AngularSync.mode(method);
+
+      ngSync.mode = ngSync.mode || AngularSync.mode(method);
+      ngSync.id = ngSync.id || config.url;
 
       // Add timeout to abort request if needed
       var deferred = ngSync.$q = $q.defer();
@@ -105,7 +115,7 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
       // Override timeout promise
       config.timeout = promise;
 
-      return commands[mode](config);
+      return commands[ngSync.mode](config);
     },
 
     response: function (response) {
