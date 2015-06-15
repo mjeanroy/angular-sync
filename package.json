@@ -7,6 +7,7 @@
     "type": "git",
     "url": "git@github.com:mjeanroy/angular-sync.git"
   },
+  "license": "MIT",
   "description": "Angular services that prevent from parallel same requests",
   "devDependencies": {
     "angular": "1.3.16",
