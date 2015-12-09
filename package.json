@@ -24,8 +24,8 @@
     "gulp-rename": "1.2.2",
     "gulp-strip-comments": "1.0.1",
     "gulp-express": "0.3.5",
-    "express": "4.12.4",
-    "connect-livereload": "0.5.3",
+    "express": "4.13.3",
+    "connect-livereload": "0.5.4",
     "open": "0.0.5",
     "karma": "0.13.15",
     "karma-chrome-launcher": "0.2.2",
@@ -42,6 +42,7 @@
   },
   "scripts": {
     "test": "gulp test",
-    "build": "gulp build"
+    "build": "gulp build",
+    "start": "gulp server"
   }
 }
