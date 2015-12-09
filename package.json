@@ -33,7 +33,7 @@
     "karma-phantomjs-launcher": "0.2.1",
     "phantomjs": "1.9.19",
     "gulp-bump": "1.0.0",
-    "gulp-git": "1.2.4",
+    "gulp-git": "1.6.0",
     "gulp-tag-version": "1.2.1",
     "gulp-filter": "3.0.1"
   },
