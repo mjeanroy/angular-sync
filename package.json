@@ -34,7 +34,7 @@
     "phantomjs": "1.9.19",
     "gulp-bump": "1.0.0",
     "gulp-git": "1.6.0",
-    "gulp-tag-version": "1.2.1",
+    "gulp-tag-version": "1.3.0",
     "gulp-filter": "3.0.1"
   },
   "engines": {
