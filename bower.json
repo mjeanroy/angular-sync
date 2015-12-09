@@ -18,5 +18,7 @@
     "test",
     "gulpfile.js"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "angular": ">=1.2.0"
+  }
 }
