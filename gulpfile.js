@@ -31,7 +31,7 @@ var uglify = require('gulp-uglify');
 var wrap = require('gulp-wrap');
 var strip = require('gulp-strip-comments');
 var server = require('gulp-express');
-var karma = require('karma').server;
+var KarmaServer = require('karma').Server;
 var git = require('gulp-git');
 var bump = require('gulp-bump');
 var gulpFilter = require('gulp-filter');
@@ -87,7 +87,8 @@ gulp.task('tdd', function(done) {
     done();
   };
 
-  karma.start(options, onDone);
+  var karma = new KarmaServer(options, onDone);
+  karma.start();
 });
 
 gulp.task('test', function(done) {
@@ -102,7 +103,8 @@ gulp.task('test', function(done) {
     done();
   };
 
-  karma.start(options, onDone);
+  var karma = new KarmaServer(options, onDone);
+  karma.start();
 });
 
 gulp.task('build', ['lint', 'minify', 'test']);
