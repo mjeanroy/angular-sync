@@ -126,7 +126,7 @@ gulp.task('build', ['lint', 'minify', 'test']);
       .pipe(git.commit('release: release version'))
       .pipe(packageJsonFilter)
       .pipe(tag_version())
-      .pipe(packageJsonFilter.restore())
+      .pipe(packageJsonFilter.restore)
       .pipe(distFilter)
       .pipe(git.rm({args: '-r'}))
       .pipe(git.commit('release: start new release'));
