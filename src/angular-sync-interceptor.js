@@ -22,10 +22,31 @@
  * SOFTWARE.
  */
 
-/* global angular */
 /* global angularSync */
 
 angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', 'AngularSyncStrategies', '$q', '$timeout', function (AngularSync, SyncMode, history, strategies, $q, $timeout) {
+
+  var handleResponse = function(config) {
+    var ngSync = config.ngSync;
+
+    // Remove history
+    history.remove(config);
+
+    // Cancel optional timeout task
+    if (ngSync.$timeout) {
+      $timeout.cancel(ngSync.$timeout);
+    }
+
+    // Cancel created deferred object
+    ngSync.$q.reject();
+
+    // Restore original timeout
+    config.timeout = ngSync.$timeout;
+
+    // Delete deferred and original timeout.
+    delete ngSync.$timeout;
+    delete ngSync.$q;
+  };
 
   return {
     request: function (config) {
@@ -39,38 +60,32 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
 
       // Add timeout to abort request if needed
       var deferred = ngSync.$q = $q.defer();
-      var promise = ngSync.$promise = deferred.promise;
+      var promise = deferred.promise;
 
       // If a timeout promise is already defined, we must resolve new
       // timeout promise when original timeout is resolved to force abortion
       var timeout = config.timeout;
-      var timeoutTask,timeoutDeferred, timeoutPromise;
       if (timeout) {
         // If timeout is specified as a number, then we should abort request
         // when timeout is reached
         if (timeout > 0) {
-          timeoutDeferred = $q.defer();
-          timeoutPromise = timeoutDeferred.promise;
-          timeoutTask = $timeout(timeoutDeferred.resolve, timeout, false);
-          timeout = timeoutPromise;
+          timeout = $timeout(deferred.resolve, timeout, false);
+        } else {
+          timeout.then(deferred.resolve);
         }
 
-        ngSync.$timeoutTask = timeoutTask;
         ngSync.$timeout = timeout;
-        timeout.then(deferred.resolve);
       }
 
       var free = function() {
         // Set everything to null...
-        deferred = promise = timeout = timeoutTask =
-          timeoutDeferred = timeoutPromise = ngSync = free = null;
+        deferred = promise = timeout = ngSync = free = null;
       };
 
-      if (timeoutPromise) {
-        timeoutPromise.then(free, free);
-      }
-
-      // Free memory when promise is resolved
+      // Free memory when promise is resolved.
+      // This promise will be resolved:
+      // - On next request.
+      // - When timeout is reached.
       promise.then(free, free);
 
       // Override timeout promise
@@ -80,93 +95,17 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
     },
 
     response: function (response) {
-      var config = response.config;
-      var ngSync = config.ngSync;
-
-      // Remove history
-      history.remove(config);
-
-      // Cancel optional timeout task
-      if (ngSync.$timeoutTask) {
-        $timeout.cancel(ngSync.$timeoutTask);
-      }
-
-      // Cancel created deferred object
-      ngSync.$q.reject();
-
+      handleResponse(response.config || response);
       return response;
     },
 
     responseError: function (rejection) {
-      var config = rejection.config || rejection;
-      var ngSync = config.ngSync;
-
-      // Remove history
-      history.remove(config);
-
-      // Cancel optional timeout task
-      if (ngSync.$timeoutTask) {
-        $timeout.cancel(ngSync.$timeoutTask);
-      }
-
-      // Cancel created deferred object
-      ngSync.$q.reject();
-
+      handleResponse(rejection.config || rejection);
       return $q.reject(rejection);
     }
   };
 }]);
 
-angularSync.config(['$httpProvider', '$provide', function ($httpProvider, $provide) {
+angularSync.config(['$httpProvider', function ($httpProvider) {
   $httpProvider.interceptors.push('AngularSyncInterceptor');
-
-  // Wrap original http service
-  $provide.decorator('$http', ['$delegate', '$q', function ($delegate, $q) {
-    var wrapErrorCallback = function (promise) {
-      var originalThen  = promise.then;
-
-      // Wrap promise to be sure error callback is not called when
-      // request rejection occurs because of double click
-      promise.then = function (success, error) {
-        var newErrorCallback = error;
-        if (error) {
-          newErrorCallback = function (data, status, headers, config) {
-            var originalConfig = config || data.config || data;
-            if (!originalConfig.ngSync.preventError) {
-              return error.apply(this, arguments);
-            }
-
-            return $q.reject(data);
-          };
-        }
-
-        var args = Array.prototype.slice.call(arguments);
-        args[1] = newErrorCallback;
-        return originalThen.apply(promise, args);
-      };
-
-      return promise;
-    };
-
-    var customHttp = function (config) {
-      var promise = $delegate(config);
-      return wrapErrorCallback(promise);
-    };
-
-    var createShortcutMethodWrapper = function(original, fn) {
-      return function() {
-        var promise = original[fn].apply(original, arguments);
-        return wrapErrorCallback(promise);
-      };
-    };
-
-    for (var i in $delegate) {
-      if (angular.isFunction($delegate[i])) {
-        customHttp[i] = createShortcutMethodWrapper($delegate, i);
-      }
-    }
-
-    // Return the custom http service
-    return customHttp;
-  }]);
 }]);

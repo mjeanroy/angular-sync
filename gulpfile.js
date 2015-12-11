@@ -54,7 +54,8 @@ var files = [
   'src/angular-sync-timeout.js',
   'src/angular-sync-history.js',
   'src/angular-sync-strategies.js',
-  'src/angular-sync-interceptor.js'
+  'src/angular-sync-interceptor.js',
+  'src/angular-sync-decorator.js'
 ];
 
 var karmaFiles = vendors
