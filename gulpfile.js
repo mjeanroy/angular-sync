@@ -53,6 +53,7 @@ var files = [
   'src/angular-sync-provider.js',
   'src/angular-sync-timeout.js',
   'src/angular-sync-history.js',
+  'src/angular-sync-strategies.js',
   'src/angular-sync-interceptor.js'
 ];
 

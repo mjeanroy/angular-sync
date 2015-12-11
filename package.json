@@ -43,6 +43,7 @@
     "node": ">=0.10.0"
   },
   "scripts": {
+    "tdd": "gulp tdd",
     "test": "gulp test",
     "build": "gulp build",
     "start": "gulp server"

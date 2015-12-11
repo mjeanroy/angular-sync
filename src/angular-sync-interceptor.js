@@ -25,46 +25,7 @@
 /* global angular */
 /* global angularSync */
 
-angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', '$q', '$timeout', function (AngularSync, SyncMode, history, $q, $timeout) {
-  var commands = {};
-
-  // Prevent requests to be triggered in parallel
-  // Useful to not trigger the same POST request...
-  commands[SyncMode.PREVENT] = function(config) {
-    var ngSync = config.ngSync;
-
-    if (history.contains(ngSync.id, config.method)) {
-      ngSync.preventError = true;
-      return $q.reject(config);
-    }
-
-    history.add(config);
-
-    return config;
-  };
-
-  // Request will be triggered whatever happens
-  commands[SyncMode.FORCE] = function(config) {
-    history.add(config);
-    return config;
-  };
-
-  // Pending requests will be aborted and incoming request
-  // will be triggered
-  commands[SyncMode.ABORT] = function(config) {
-    var ngSync = config.ngSync;
-
-    angular.forEach(history.pendings(ngSync.id, config.method), function(rq) {
-      var rqNgSync = rq.config.ngSync;
-      rqNgSync.preventError = true;
-      rqNgSync.$q.resolve();
-    });
-
-    history.clear(ngSync.id, config.method)
-           .add(config);
-
-    return config;
-  };
+angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', 'AngularSyncStrategies', '$q', '$timeout', function (AngularSync, SyncMode, history, strategies, $q, $timeout) {
 
   return {
     request: function (config) {
@@ -115,7 +76,7 @@ angularSync.factory('AngularSyncInterceptor', ['AngularSync', 'AngularSyncMode',
       // Override timeout promise
       config.timeout = promise;
 
-      return commands[ngSync.mode](config);
+      return strategies[ngSync.mode](config);
     },
 
     response: function (response) {
