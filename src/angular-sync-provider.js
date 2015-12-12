@@ -28,6 +28,7 @@
 angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
 
   var options = {
+    preventError: true,
     timeout: -1,
     modes: {
       GET: SyncMode.ABORT,
@@ -56,6 +57,10 @@ angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
     return this;
   };
 
+  this.allowError = function() {
+    options.preventError = false;
+  };
+
   this.$get = function() {
     return {
       timeout: function() {
@@ -64,6 +69,10 @@ angularSync.provider('AngularSync', ['AngularSyncMode', function(SyncMode) {
 
       mode: function(verb) {
         return options.modes[verb.toUpperCase()];
+      },
+
+      preventError: function() {
+        return options.preventError;
       }
     };
   };

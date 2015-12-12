@@ -124,4 +124,10 @@ describe('AngularSyncMode', function() {
       AngularSyncProvider.mode('get', 'foo');
     }).toThrow(new Error('Mode "foo" is not valid'));
   });
+
+  it('should prevent error by default', function() {
+    expect(AngularSync.preventError()).toBe(true);
+    AngularSyncProvider.allowError();
+    expect(AngularSync.preventError()).toBe(false);
+  });
 });

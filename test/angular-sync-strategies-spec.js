@@ -34,13 +34,15 @@ describe('AngularSyncStrategies', function() {
 
   beforeEach(angular.mock.module('angularSync'));
 
-  beforeEach(inject(function(_AngularSyncStrategies_, _AngularSyncHistory_, _$q_) {
+  beforeEach(inject(function(_AngularSync_, _AngularSyncStrategies_, _AngularSyncHistory_, _$q_) {
+    AngularSync = _AngularSync_;
     AngularSyncStrategies = _AngularSyncStrategies_;
     AngularSyncHistory = _AngularSyncHistory_;
     $q = _$q_;
   }));
 
   beforeEach(function() {
+    spyOn(AngularSync, 'preventError').and.callThrough();
     spyOn(AngularSyncHistory, 'contains').and.callThrough();
     spyOn(AngularSyncHistory, 'add').and.callThrough();
     spyOn(AngularSyncHistory, 'clear').and.callThrough();
@@ -95,6 +97,7 @@ describe('AngularSyncStrategies', function() {
       var r2 = AngularSyncStrategies.prevent(c2);
 
       expect(r2).toBe(promise);
+      expect(AngularSync.preventError).toHaveBeenCalled();
       expect(AngularSyncHistory.contains).toHaveBeenCalledWith(id, method);
       expect(AngularSyncHistory.add).not.toHaveBeenCalledWith(c2);
       expect(c1.ngSync.preventError).not.toBeDefined();
@@ -143,6 +146,7 @@ describe('AngularSyncStrategies', function() {
       expect(r2.ngSync.$q.resolve).not.toHaveBeenCalled();
       expect(r2.ngSync.$q.reject).not.toHaveBeenCalled();
 
+      expect(AngularSync.preventError).toHaveBeenCalled();
       expect(r1.ngSync.preventError).toBe(true);
       expect(r1.ngSync.$q.resolve).toHaveBeenCalled();
       expect(r1.ngSync.$q.reject).not.toHaveBeenCalled();
@@ -167,6 +171,8 @@ describe('AngularSyncStrategies', function() {
 
       AngularSyncStrategies.abort(c3);
 
+      expect(AngularSync.preventError).toHaveBeenCalled();
+  
       expect(rq1.config.ngSync.preventError).toBe(true);
       expect(rq1.config.ngSync.$q.resolve).toHaveBeenCalled();
       expect(rq1.config.ngSync.$q.reject).not.toHaveBeenCalled();

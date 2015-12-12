@@ -25,7 +25,7 @@
 /* global angular */
 /* global angularSync */
 
-angularSync.factory('AngularSyncStrategies', ['AngularSyncMode', 'AngularSyncHistory', '$q', function (SyncMode, history, $q) {
+angularSync.factory('AngularSyncStrategies', ['AngularSync', 'AngularSyncMode', 'AngularSyncHistory', '$q', function (AngularSync, SyncMode, history, $q) {
   var commands = {};
 
   // Prevent requests to be triggered in parallel
@@ -36,7 +36,7 @@ angularSync.factory('AngularSyncStrategies', ['AngularSyncMode', 'AngularSyncHis
     // Check if request is pending.
     // If request is pending, we should prevent request to be triggered.
     if (history.contains(ngSync.id, config.method)) {
-      ngSync.preventError = true;
+      ngSync.preventError = AngularSync.preventError();
       return $q.reject(config);
     }
 
@@ -61,7 +61,7 @@ angularSync.factory('AngularSyncStrategies', ['AngularSyncMode', 'AngularSyncHis
     var pendingRequests = history.pendings(ngSync.id, config.method);
     angular.forEach(pendingRequests, function(rq) {
       var rqNgSync = rq.config.ngSync;
-      rqNgSync.preventError = true;
+      rqNgSync.preventError = AngularSync.preventError();
       rqNgSync.$q.resolve();
     });
 
