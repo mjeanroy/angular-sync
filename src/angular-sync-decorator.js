@@ -26,53 +26,106 @@
 /* global angularSync */
 
 angularSync.config(['$provide', function ($provide) {
+
+  // Wrap promise `then` function.
+  // If error must be silently ignored, then error callback
+  // will be skipped (and promise will be rejected to allow chaining).
+  var wrapPromise = function(promise, $q) {
+    var originalThen  = promise.then;
+
+    // Wrap promise to be sure error callback is not called when
+    // request rejection occurs because of double click
+    promise.then = function (success, error) {
+      var newErrorCallback = error;
+      if (error) {
+        newErrorCallback = function (data, status, headers, config) {
+          var originalConfig = config || data.config || data;
+          var ngSync = originalConfig.ngSync || {};
+          if (!ngSync.preventError) {
+            return error.apply(this, arguments);
+          }
+
+          return $q.reject(data);
+        };
+      }
+
+      var args = Array.prototype.slice.call(arguments);
+      args[1] = newErrorCallback;
+      return originalThen.apply(promise, args);
+    };
+
+    return promise;
+  };
+
+  // Wrap function and allow result to be modified by `after` function.
+  var proxyResult = function(original, after) {
+    return function() {
+      return after.call(this, original.apply(this, arguments));
+    };
+  };
+
   $provide.decorator('$http', ['$delegate', '$q', function ($delegate, $q) {
-    var wrapErrorCallback = function (promise) {
-      var originalThen  = promise.then;
-
-      // Wrap promise to be sure error callback is not called when
-      // request rejection occurs because of double click
-      promise.then = function (success, error) {
-        var newErrorCallback = error;
-        if (error) {
-          newErrorCallback = function (data, status, headers, config) {
-            var originalConfig = config || data.config || data;
-            var ngSync = originalConfig.ngSync || {};
-            if (!ngSync.preventError) {
-              return error.apply(this, arguments);
-            }
-
-            return $q.reject(data);
-          };
-        }
-
-        var args = Array.prototype.slice.call(arguments);
-        args[1] = newErrorCallback;
-        return originalThen.apply(promise, args);
-      };
-
-      return promise;
+    var after = function(promise) {
+      return wrapPromise(promise, $q);
     };
 
-    var customHttp = function (config) {
-      var promise = $delegate(config);
-      return wrapErrorCallback(promise);
+    var proxyPromise = function(fn) {
+      return proxyResult(fn, after);
     };
 
-    var createShortcutMethodWrapper = function(original, fn) {
-      return function() {
-        var promise = original[fn].apply(original, arguments);
-        return wrapErrorCallback(promise);
-      };
-    };
+    // Proxy $http function
+    var $http = proxyPromise($delegate);
 
+    // Proxy shortcuts methods
     for (var i in $delegate) {
       if (angular.isFunction($delegate[i])) {
-        customHttp[i] = createShortcutMethodWrapper($delegate, i);
+        $http[i] = proxyPromise($delegate[i]);
       }
     }
 
     // Return the custom http service
-    return customHttp;
+    return $http;
   }]);
+
+  try {
+    $provide.decorator('$resource', ['$delegate', '$q', function($delegate, $q) {
+      // Proxy $resource promise.
+      var after = function(result) {
+        var promise = wrapPromise(result.$promise || result, $q);
+
+        // Need to return instance with $promise property, or
+        // promise if function was called on instance.
+        if (result.$promise) {
+          result.$promise = promise;
+        } else {
+          result = promise;
+        }
+
+        return result;
+      };
+
+      var proxyPromise = function(fn) {
+        return proxyResult(fn, after);
+      };
+
+      // Proxy $resource factory
+      var $resource = function() {
+        var resource = $delegate.apply($delegate, arguments);
+
+        // Proxy resource methods
+        for (var i in resource) {
+          if (angular.isFunction(resource[i])) {
+            resource[i] = proxyPromise(resource[i]);
+          }
+        }
+
+        return resource;
+      };
+
+      return $resource;
+    }]);
+  }
+  catch (e) {
+    // Resource is optional, no worry
+  }
 }]);

@@ -126,6 +126,107 @@ describe('AngularSyncInterceptor', function() {
     expect(onError2).not.toHaveBeenCalled();
   });
 
+  it('should abort previous GET request with $resource and $promise', function() {
+    var Entity = $resource('/foo');
+
+    $httpBackend.whenGET('/foo').respond([]);
+
+    // Trigger first request
+    var onSuccess1 = jasmine.createSpy('onSuccess1');
+    var onError1 = jasmine.createSpy('onError1');
+
+    var r1 = $rootScope.$apply(function() {
+      var value = Entity.query();
+      value.$promise.then(onSuccess1, onError1);
+      return value;
+    });
+
+    expect(r1.$promise).toBeDefined();
+    expect(r1.$resolved).toBe(false);
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+
+    // Trigger second request
+    var onSuccess2 = jasmine.createSpy('onSuccess2');
+    var onError2 = jasmine.createSpy('onError2');
+
+    var r2 = $rootScope.$apply(function() {
+      var value = Entity.query();
+      value.$promise.then(onSuccess2, onError2);
+      return value;
+    });
+
+    expect(r2.$promise).toBeDefined();
+    expect(r2.$resolved).toBe(false);
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+    expect(onSuccess2).not.toHaveBeenCalled();
+    expect(onError2).not.toHaveBeenCalled();
+
+    $httpBackend.flush();
+
+    expect(r2.$resolved).toBe(true);
+    expect(r1.$resolved).toBe(false);
+
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+    expect(onSuccess2).toHaveBeenCalled();
+    expect(onError2).not.toHaveBeenCalled();
+  });
+
+  it('should abort previous GET request with $resource instances and $promise', function() {
+    var Entity = $resource('/foo');
+
+    var e1 = new Entity();
+    var e2 = new Entity();
+
+    $httpBackend.whenGET('/foo').respond({
+      id: 1,
+      name: 'foo'
+    });
+
+    // Trigger first request
+    var onSuccess1 = jasmine.createSpy('onSuccess1');
+    var onError1 = jasmine.createSpy('onError1');
+
+    $rootScope.$apply(function() {
+      return e1.$get().then(onSuccess1, onError1);
+    });
+
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+
+    // Trigger second request
+    var onSuccess2 = jasmine.createSpy('onSuccess2');
+    var onError2 = jasmine.createSpy('onError2');
+
+    $rootScope.$apply(function() {
+      return e2.$get(onSuccess2, onError2);
+    });
+
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+    expect(onSuccess2).not.toHaveBeenCalled();
+    expect(onError2).not.toHaveBeenCalled();
+
+    $httpBackend.flush();
+
+    expect(e1).not.toEqual(jasmine.objectContaining({
+      id: 1,
+      name: 'foo'
+    }));
+
+    expect(e2).toEqual(jasmine.objectContaining({
+      id: 1,
+      name: 'foo'
+    }));
+
+    expect(onSuccess1).not.toHaveBeenCalled();
+    expect(onError1).not.toHaveBeenCalled();
+    expect(onSuccess2).toHaveBeenCalled();
+    expect(onError2).not.toHaveBeenCalled();
+  });
+
   it('should abort GET request with timeout promise', function() {
     var deferred = $q.defer();
     var config = {
