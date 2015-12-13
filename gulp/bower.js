@@ -22,27 +22,19 @@
  * SOFTWARE.
  */
 
-var open = require('open');
-var express = require('express');
+var gulp = require('gulp');
+var bower = require('gulp-bower');
 
-var app = express();
-app.use(require('connect-livereload')());
-
-app.use('/', express.static('vendors'));
-app.use('/', express.static('sample'));
-app.use('/', express.static('dist'));
-
-var port = 8080;
-
-['get', 'post', 'put', 'patch', 'delete'].forEach(function(verb) {
-  app[verb]('/foo', function(req, res) {
-    setTimeout(function() {
-      res.status(201).send(null);
-    }, 3000);
+module.exports = function(options) {
+  gulp.task('bower', function() {
+    return bower({
+      cmd: 'install'
+    });
   });
-});
 
-app.listen(port, function () {
-  console.log('Server listening on : http://localhost:' + port);
-  open('http://localhost:' + port);
-});
+  gulp.task('bower-update', function() {
+    return bower({
+      cmd: 'update'
+    });
+  });
+};

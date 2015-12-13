@@ -22,27 +22,15 @@
  * SOFTWARE.
  */
 
-var open = require('open');
-var express = require('express');
+var path = require('path');
+var gulp = require('gulp');
+var server = require('gulp-express');
 
-var app = express();
-app.use(require('connect-livereload')());
-
-app.use('/', express.static('vendors'));
-app.use('/', express.static('sample'));
-app.use('/', express.static('dist'));
-
-var port = 8080;
-
-['get', 'post', 'put', 'patch', 'delete'].forEach(function(verb) {
-  app[verb]('/foo', function(req, res) {
-    setTimeout(function() {
-      res.status(201).send(null);
-    }, 3000);
+module.exports = function(options) {
+  gulp.task('server', ['minify', 'bower'], function () {
+    server.run([path.join(options.sample, 'server.js')]);
+    gulp.watch([options.src + '/**/*.js'], ['minify']);
+    gulp.watch([options.dist + '/**/*'], server.notify);
+    gulp.watch([options.sample + '/**/*'], server.notify);
   });
-});
-
-app.listen(port, function () {
-  console.log('Server listening on : http://localhost:' + port);
-  open('http://localhost:' + port);
-});
+};

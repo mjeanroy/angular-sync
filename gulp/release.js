@@ -22,34 +22,42 @@
  * SOFTWARE.
  */
 
+var _ = require('underscore');
 var path = require('path');
 var gulp = require('gulp');
-var wrench = require('wrench');
+var git = require('gulp-git');
+var bump = require('gulp-bump');
+var gulpFilter = require('gulp-filter');
+var tag_version = require('gulp-tag-version');
 
-var files = [
-  path.join(__dirname, 'src/angular-sync-module.js'),
-  path.join(__dirname, 'src/angular-sync-modes.js'),
-  path.join(__dirname, 'src/angular-sync-provider.js'),
-  path.join(__dirname, 'src/angular-sync-timeout.js'),
-  path.join(__dirname, 'src/angular-sync-history.js'),
-  path.join(__dirname, 'src/angular-sync-strategies.js'),
-  path.join(__dirname, 'src/angular-sync-interceptor.js'),
-  path.join(__dirname, 'src/angular-sync-decorator.js')
-];
+module.exports = function() {
+  ['minor', 'major', 'patch'].forEach(function(level) {
+    gulp.task('release:' + level, ['build', 'test-all'], function(done) {
+      var packageJsonFilter = gulpFilter(function(file) {
+        return file.relative === 'package.json';
+      });
 
-var options = {
-  root: __dirname,
-  src: path.join(__dirname, 'src'),
-  test: path.join(__dirname, 'test'),
-  dist: path.join(__dirname, 'dist'),
-  vendors: path.join(__dirname, 'vendors'),
-  sample: path.join(__dirname, 'sample'),
-  files: files
+      var distFilter = gulpFilter(function(file) {
+        return file.relative === 'dist';
+      });
+
+      var src = _.map(['package.json', 'bower.json', 'dist'], function(file) {
+        return path.join(options.root, file)
+      });
+
+      return gulp.src(src)
+        .pipe(bump({type: level}))
+        .pipe(gulp.dest(options.root))
+        .pipe(git.add({args: '-f'}))
+        .pipe(git.commit('release: release version'))
+        .pipe(packageJsonFilter)
+        .pipe(tag_version())
+        .pipe(packageJsonFilter.restore)
+        .pipe(distFilter)
+        .pipe(git.rm({args: '-r'}))
+        .pipe(git.commit('release: start new release'));
+    });
+  });
+
+  gulp.task('release', ['release:minor']);
 };
-
-wrench.readdirSyncRecursive('./gulp').forEach(function(file) {
-  require('./gulp/' + file)(options);
-});
-
-gulp.task('build', ['lint', 'minify', 'test-all']);
-gulp.task('default', ['build']);

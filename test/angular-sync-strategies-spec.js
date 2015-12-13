@@ -49,7 +49,6 @@ describe('AngularSyncStrategies', function() {
     spyOn(AngularSyncHistory, 'pendings').and.callThrough();
 
     spyOn($q, 'reject').and.callThrough();
-    spyOn($q, 'resolve').and.callThrough();
 
     id = '/foo';
     method = 'GET';
@@ -116,15 +115,14 @@ describe('AngularSyncStrategies', function() {
       expect(AngularSyncHistory.clear).toHaveBeenCalledWith(id, method);
       expect(config.ngSync.preventError).not.toBeDefined();
       expect($q.reject).not.toHaveBeenCalled();
-      expect($q.resolve).not.toHaveBeenCalled();
     });
 
     it('should trigger request and abort previous', function() {
       var c1 = angular.copy(config);
-      c1.ngSync.$q = jasmine.createSpyObj('$q', ['resolve', 'reject']);
+      c1.ngSync.$q = jasmine.createSpyObj('deferred', ['resolve', 'reject']);
 
       var c2 = angular.copy(config);
-      c2.ngSync.$q = jasmine.createSpyObj('$q', ['resolve', 'reject']);
+      c2.ngSync.$q = jasmine.createSpyObj('deferred', ['resolve', 'reject']);
 
       var r1 = AngularSyncStrategies.abort(c1);
 
@@ -161,18 +159,18 @@ describe('AngularSyncStrategies', function() {
           config: angular.copy(config)
       };
 
-      rq1.config.ngSync.$q = jasmine.createSpyObj('$q', ['resolve', 'reject']);
-      rq2.config.ngSync.$q = jasmine.createSpyObj('$q', ['resolve', 'reject']);
+      rq1.config.ngSync.$q = jasmine.createSpyObj('deferred', ['resolve', 'reject']);
+      rq2.config.ngSync.$q = jasmine.createSpyObj('deferred', ['resolve', 'reject']);
 
       var c3 = angular.copy(config);
-      c3.ngSync.$q = jasmine.createSpyObj('$q', ['resolve', 'reject']);
+      c3.ngSync.$q = jasmine.createSpyObj('deferred', ['resolve', 'reject']);
 
       AngularSyncHistory.pendings.and.returnValues([ rq1, rq2 ]);
 
       AngularSyncStrategies.abort(c3);
 
       expect(AngularSync.preventError).toHaveBeenCalled();
-  
+
       expect(rq1.config.ngSync.preventError).toBe(true);
       expect(rq1.config.ngSync.$q.resolve).toHaveBeenCalled();
       expect(rq1.config.ngSync.$q.reject).not.toHaveBeenCalled();

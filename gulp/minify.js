@@ -22,27 +22,23 @@
  * SOFTWARE.
  */
 
-var open = require('open');
-var express = require('express');
+var path = require('path');
+var gulp = require('gulp');
+var concat = require('gulp-concat');
+var rename = require('gulp-rename');
+var uglify = require('gulp-uglify');
+var wrap = require('gulp-wrap');
+var strip = require('gulp-strip-comments');
 
-var app = express();
-app.use(require('connect-livereload')());
-
-app.use('/', express.static('vendors'));
-app.use('/', express.static('sample'));
-app.use('/', express.static('dist'));
-
-var port = 8080;
-
-['get', 'post', 'put', 'patch', 'delete'].forEach(function(verb) {
-  app[verb]('/foo', function(req, res) {
-    setTimeout(function() {
-      res.status(201).send(null);
-    }, 3000);
+module.exports = function(options) {
+  gulp.task('minify', function(done) {
+    return gulp.src(options.files)
+      .pipe(concat('angular-sync.js'))
+      .pipe(strip({ block: true }))
+      .pipe(wrap({src: path.join(options.root, 'wrapper.js')}))
+      .pipe(gulp.dest(options.dist))
+      .pipe(uglify())
+      .pipe(rename('angular-sync.min.js'))
+      .pipe(gulp.dest(options.dist));;
   });
-});
-
-app.listen(port, function () {
-  console.log('Server listening on : http://localhost:' + port);
-  open('http://localhost:' + port);
-});
+};
