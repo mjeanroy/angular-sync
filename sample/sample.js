@@ -23,7 +23,7 @@
  */
 
 angular
-  .module('SampleApp', ['ngResource', 'angularSync'])
+  .module('SampleApp', ['angularSync', 'ngResource'])
   .controller('SampleController', ['$scope', '$http', '$resource', function($scope, $http, $resource) {
     var $r = $resource('/foo', {}, {
       put: {

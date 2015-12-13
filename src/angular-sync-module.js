@@ -25,4 +25,11 @@
 /* global angular */
 /* exported angularSync */
 
-var angularSync = angular.module('angularSync', []);
+var angularSync = (function() {
+  try {
+    return angular.module('angularSync', ['ngResource']);
+  }
+  catch(e) {
+    return angular.module('angularSync', []);
+  }
+})();
