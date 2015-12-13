@@ -30,16 +30,19 @@ var bump = require('gulp-bump');
 var gulpFilter = require('gulp-filter');
 var tag_version = require('gulp-tag-version');
 
-module.exports = function() {
+module.exports = function(options) {
+  var isPackageJson = function(file) {
+    return file.relative === 'package.json';
+  };
+
+  var isDist = function(file) {
+    return file.relative === 'dist';
+  };
+
   ['minor', 'major', 'patch'].forEach(function(level) {
     gulp.task('release:' + level, ['build', 'test-all'], function(done) {
-      var packageJsonFilter = gulpFilter(function(file) {
-        return file.relative === 'package.json';
-      });
-
-      var distFilter = gulpFilter(function(file) {
-        return file.relative === 'dist';
-      });
+      var packageJsonFilter = gulpFilter(isPackageJson, { restore: true });
+      var distFilter = gulpFilter(isDist);
 
       var src = _.map(['package.json', 'bower.json', 'dist'], function(file) {
         return path.join(options.root, file)
