@@ -25,7 +25,7 @@
 /* global angular */
 /* global angularSync */
 
-angularSync.config(['$provide', function ($provide) {
+angularSync.config(['$provide', '$injector', function ($provide, $injector) {
 
   // Wrap promise `then` function.
   // If error must be silently ignored, then error callback
@@ -87,7 +87,9 @@ angularSync.config(['$provide', function ($provide) {
     return $http;
   }]);
 
-  try {
+  // Check if ngResource module is available.
+  // This module is optional and may not be registered.
+  if ($injector.has('$resource')) {
     $provide.decorator('$resource', ['$delegate', '$q', function($delegate, $q) {
       // Proxy $resource promise.
       var after = function(result) {
@@ -124,8 +126,5 @@ angularSync.config(['$provide', function ($provide) {
 
       return $resource;
     }]);
-  }
-  catch (e) {
-    // Resource is optional, no worry
   }
 }]);

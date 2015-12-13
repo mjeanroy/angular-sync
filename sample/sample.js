@@ -53,32 +53,24 @@ angular
     });
 
     var onSuccess = function(verb) {
-      $scope.counters[verb].nbSuccess++;
+      return function() {
+        $scope.counters[verb].nbSuccess++;
+      };
     };
 
     var onError = function(verb) {
-      $scope.counters[verb].nbError++;
+      return function() {
+        $scope.counters[verb].nbError++;
+      };
     };
 
     $scope.triggerHttp = function(verb) {
       $http[verb.toLowerCase()]('/foo')
-        .success(function() {
-          onSuccess(verb);
-        })
-        .error(function() {
-          onError(verb);
-        });
+        .then(onSuccess(verb), onError(verb));
     };
 
     $scope.triggerNgResource = function(verb) {
-      var op = operations[verb];
-      $r[op](
-        function() {
-          onSuccess(verb);
-        },
-        function() {
-          onError(verb);
-        }
-      );
+      $r[operations[verb]]().$promise
+        .then(onSuccess(verb), onError(verb));
     };
   }]);
