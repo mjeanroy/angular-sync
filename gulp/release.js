@@ -40,12 +40,12 @@ module.exports = function(options) {
   };
 
   ['minor', 'major', 'patch'].forEach(function(level) {
-    gulp.task('release:' + level, ['build', 'test-all'], function(done) {
+    gulp.task('release:' + level, ['build', 'test-all'], function() {
       var packageJsonFilter = gulpFilter(isPackageJson, { restore: true });
       var distFilter = gulpFilter(isDist);
 
       var src = _.map(['package.json', 'bower.json', 'dist'], function(file) {
-        return path.join(options.root, file)
+        return path.join(options.root, file);
       });
 
       return gulp.src(src)

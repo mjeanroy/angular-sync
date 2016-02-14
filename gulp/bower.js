@@ -25,16 +25,14 @@
 var gulp = require('gulp');
 var bower = require('gulp-bower');
 
-module.exports = function(options) {
-  gulp.task('bower', function() {
-    return bower({
-      cmd: 'install'
+module.exports = function() {
+  ['install', 'update'].forEach(function(target) {
+    gulp.task('bower:' + target, function() {
+      return bower({
+        cmd: target
+      });
     });
   });
 
-  gulp.task('bower-update', function() {
-    return bower({
-      cmd: 'update'
-    });
-  });
+  gulp.task('bower', ['bower:install']);
 };

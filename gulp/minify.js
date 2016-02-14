@@ -28,17 +28,19 @@ var concat = require('gulp-concat');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 var wrap = require('gulp-wrap');
-var strip = require('gulp-strip-comments');
+var replace = require('gulp-replace');
+var esformatter = require('gulp-esformatter');
 
 module.exports = function(options) {
-  gulp.task('minify', function(done) {
+  gulp.task('minify', function() {
     return gulp.src(options.files)
+      .pipe(replace(/\/\*\*([\s\S]*)The MIT License([\s\S]*)\*\//, ''))
       .pipe(concat('angular-sync.js'))
-      .pipe(strip({ block: true }))
       .pipe(wrap({src: path.join(options.root, 'wrapper.js')}))
+      .pipe(esformatter({indent: {value: '  '}}))
       .pipe(gulp.dest(options.dist))
       .pipe(uglify())
       .pipe(rename('angular-sync.min.js'))
-      .pipe(gulp.dest(options.dist));;
+      .pipe(gulp.dest(options.dist));
   });
 };

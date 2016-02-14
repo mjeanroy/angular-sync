@@ -24,13 +24,16 @@
 
 var path = require('path');
 var gulp = require('gulp');
-var server = require('gulp-express');
+var gls = require('gulp-live-server');
 
 module.exports = function(options) {
   gulp.task('server', ['minify', 'bower'], function () {
-    server.run([path.join(options.sample, 'server.js')]);
+    var server = gls.new(path.join(options.sample, 'server.js'));
+
     gulp.watch([options.src + '/**/*.js'], ['minify']);
-    gulp.watch([options.dist + '/**/*'], server.notify);
-    gulp.watch([options.sample + '/**/*'], server.notify);
+    gulp.watch([options.dist + '/**/*'], server.notify.bind(server));
+    gulp.watch([options.sample + '/**/*'], server.notify.bind(server));
+
+    server.start();
   });
 };
