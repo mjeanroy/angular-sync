@@ -1,0 +1,33 @@
+{
+  "node": true,
+  "freeze": true,
+  "notypeof": true,
+  "browser": true,
+  "es5": false,
+  "esnext": true,
+  "bitwise": true,
+  "camelcase": false,
+  "curly": true,
+  "eqeqeq": true,
+  "immed": true,
+  "latedef": true,
+  "newcap": true,
+  "noarg": true,
+  "quotmark": "single",
+  "regexp": true,
+  "undef": true,
+  "unused": true,
+  "strict": false,
+  "trailing": true,
+  "smarttabs": false,
+  "globals": {
+    "angular": true,
+    "inject": true,
+    "jasmine": true,
+    "beforeEach": true,
+    "afterEach": true,
+    "it": true,
+    "describe": true,
+    "expect": true
+  }
+}

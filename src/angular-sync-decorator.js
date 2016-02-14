@@ -93,6 +93,14 @@ angularSync.config(['$provide', '$injector', function ($provide, $injector) {
     $provide.decorator('$resource', ['$delegate', '$q', function($delegate, $q) {
       // Proxy $resource promise.
       var after = function(result) {
+        if (result.$promise) {
+          // Do not forget to update $resolved flag.
+          result.$promise = result.$promise.then(null, function(data) {
+            result.$resolved = true;
+            return $q.reject(data);
+          });
+        }
+
         var promise = wrapPromise(result.$promise || result, $q);
 
         // Need to return instance with $promise property, or

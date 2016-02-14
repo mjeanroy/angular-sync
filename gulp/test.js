@@ -34,7 +34,7 @@ module.exports = function(options) {
     'angular-mocks%version%/angular-mocks.js'
   ];
 
-  _.forEach(['1.2', '1.3', ''], function(version) {
+  _.forEach(['1.2', '1.3', '1.4', ''], function(version) {
     var suffix = version ? '-' + version : '';
     var vendorFiles = _.map(vendors, function(current) {
       return path.join(options.vendors, current.replace('%version%', suffix));
@@ -73,6 +73,5 @@ module.exports = function(options) {
   });
 
   // Launch all tests.
-  gulp.task('test-all', ['test-1.2', 'test-1.3', 'test']);
+  gulp.task('test-all', ['test-1.2', 'test-1.3', 'test-1.4', 'test']);
 };
-

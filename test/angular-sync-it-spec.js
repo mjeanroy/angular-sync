@@ -118,7 +118,7 @@ describe('AngularSyncInterceptor', function() {
     $httpBackend.flush();
 
     expect(r2.$resolved).toBe(true);
-    expect(r1.$resolved).toBe(false);
+    expect(r1.$resolved).toBe(true);
 
     expect(onSuccess1).not.toHaveBeenCalled();
     expect(onError1).not.toHaveBeenCalled();
@@ -166,7 +166,7 @@ describe('AngularSyncInterceptor', function() {
     $httpBackend.flush();
 
     expect(r2.$resolved).toBe(true);
-    expect(r1.$resolved).toBe(false);
+    expect(r1.$resolved).toBe(true);
 
     expect(onSuccess1).not.toHaveBeenCalled();
     expect(onError1).not.toHaveBeenCalled();
